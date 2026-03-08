@@ -1,6 +1,6 @@
 import { useEffect, useRef } from "react";
 import { useAppStore, RealArbitrageOpportunity } from "@/lib/store";
-import { scanAethrixPools, AethrixPool } from "@/lib/aethrix";
+import { scanAethrixPools, AethrixPool, fetchSpotlightTokens } from "@/lib/aethrix";
 import { alphaEngine } from "@/modules/alpha/AlphaEngine";
 import { useAlphaGuard } from "@/modules/alpha/AlphaGuard";
 
@@ -27,16 +27,21 @@ export function GlobalEngine() {
 
         const executeScan = async () => {
             try {
-                // TRUE GLOBAL SCAN: Polling both chains simultaneously
-                const [solResponse, bscResponse] = await Promise.all([
+                // TRUE GLOBAL SCAN: Polling both chains simultaneously + Spotlight check
+                const [solResponse, bscResponse, spotlightPools] = await Promise.all([
                     scanAethrixPools("solana"),
-                    scanAethrixPools("bsc")
+                    scanAethrixPools("bsc"),
+                    fetchSpotlightTokens()
                 ]);
 
                 if (!isMounted) return;
 
                 // Merge and select top performers globally
-                const allPools = [...(solResponse.pools || []), ...(bscResponse.pools || [])];
+                const allPools = [
+                    ...(solResponse.pools || []),
+                    ...(bscResponse.pools || []),
+                    ...spotlightPools
+                ];
 
                 // ARBITRAGE SCAN: High-Precision Net-Profit Calculation Algorithm
                 const arbOpportunities: RealArbitrageOpportunity[] = [];
@@ -218,10 +223,13 @@ export function GlobalEngine() {
                 }
             } catch (err) {
                 console.error("GlobalEngine scan failed:", err);
+                setAethrixStats({ apiMode: "Error" });
             }
 
             // Loop every 20s for faster "real-time" feel without killing the API
-            timeoutId = setTimeout(executeScan, 20000);
+            if (isMounted) {
+                timeoutId = setTimeout(executeScan, 20000);
+            }
         };
 
         // Initial immediate scan

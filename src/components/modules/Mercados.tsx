@@ -1,6 +1,6 @@
-import { useState, useMemo, useEffect, useCallback, memo } from "react";
+import { useState, useCallback, memo } from "react";
 import { useAppStore } from "@/lib/store";
-import { fetchSpotlightTokens, AethrixPool } from "@/lib/aethrix";
+import { AethrixPool } from "@/lib/aethrix";
 import { motion, AnimatePresence, useMotionValue, useTransform, PanInfo } from "framer-motion";
 import {
     Zap,
@@ -154,15 +154,31 @@ const AlphaCard = memo(({ pool, onSwipe, isTop, isAuthorized, onSnipe }: AlphaCa
                                             <span className="text-[8px] font-black uppercase text-[#00ff41]">Encrypted</span>
                                         </div>
                                     ) : (
-                                        <div className="text-right border-l-2 border-[#00ff41]/20 pl-4">
-                                            <div className="text-[9px] font-black uppercase text-white/40 mb-1">Entry State</div>
-                                            <div className="text-[10px] font-black uppercase text-[#00ff41] flex items-center gap-1">
-                                                <div className="w-1.5 h-1.5 bg-[#00ff41] rounded-full animate-pulse" />
-                                                NOMINAL
+                                        <div className="flex flex-col items-end">
+                                            <div className="text-3xl font-black italic tracking-tighter text-[#00ff41]">
+                                                {pool.score}%
                                             </div>
+                                            <div className="text-[9px] font-black uppercase opacity-60">High Confidence</div>
                                         </div>
                                     )}
                                 </div>
+
+                                {/* ALPHA REASONS (DYNAMIC) - Only if authorized */}
+                                {isAuthorized && pool.alphaReasons && pool.alphaReasons.length > 0 && (
+                                    <div className="mt-4 p-2 bg-[#00ff4115] border border-[#00ff41] border-dashed">
+                                        <div className="text-[8px] font-black uppercase text-[#00ff41] mb-1 opacity-80 flex items-center gap-1">
+                                            <Zap size={8} className="animate-pulse" />
+                                            Engine Insights
+                                        </div>
+                                        <div className="flex flex-wrap gap-1">
+                                            {pool.alphaReasons.slice(0, 3).map((reason, idx) => (
+                                                <div key={idx} className="bg-[#00ff41] text-black px-1 py-0.5 text-[7px] font-black uppercase leading-none">
+                                                    {reason}
+                                                </div>
+                                            ))}
+                                        </div>
+                                    </div>
+                                )}
 
                                 <div className="mt-3 bg-white/10 h-1.5 w-full">
                                     <motion.div
@@ -206,42 +222,21 @@ const AlphaCard = memo(({ pool, onSwipe, isTop, isAuthorized, onSnipe }: AlphaCa
 // --- MAIN COMPONENT: MERCADOS ---
 
 export function Mercados() {
-    const { globalRankings, networkMode, setActiveViewId, setPrefilledSwap, language } = useAppStore();
+    const { globalRankings, setActiveViewId, setPrefilledSwap, language, triggerGlobalSync, aethrixStats } = useAppStore();
     const t = translations[language];
     const { isAuthorized } = useAlphaGuard();
 
-    const [directData, setDirectData] = useState<AethrixPool[] | null>(null);
     const [currentIndex, setCurrentIndex] = useState(0);
-    const [loading, setLoading] = useState(true);
-    const [error, setError] = useState<string | null>(null);
     const [isRefreshing, setIsRefreshing] = useState(false);
 
-    const loadData = useCallback(async () => {
+    const refreshData = useCallback(async () => {
         setIsRefreshing(true);
-        try {
-            const tokens = await fetchSpotlightTokens();
-            setDirectData(tokens);
-            setCurrentIndex(0);
-            setError(null);
-        } catch {
-            setError("Connectivity error. Retrying...");
-        } finally {
-            setLoading(false);
-            setIsRefreshing(false);
-        }
-    }, []);
+        await triggerGlobalSync();
+        setCurrentIndex(0);
+        setIsRefreshing(false);
+    }, [triggerGlobalSync]);
 
-    useEffect(() => {
-        if (!networkMode) {
-            loadData();
-        } else {
-            setLoading(false);
-        }
-    }, [networkMode, loadData]);
-
-    const activePools = useMemo(() => {
-        return networkMode ? globalRankings : (directData || []);
-    }, [networkMode, globalRankings, directData]);
+    const activePools = globalRankings;
 
     const handleSwipe = useCallback((dir: "left" | "right") => {
         if (dir === "right" && activePools[currentIndex]) {
@@ -267,7 +262,7 @@ export function Mercados() {
     const pool = activePools[currentIndex];
     const nextPool = activePools[currentIndex + 1];
 
-    if (loading) {
+    if (globalRankings.length === 0 && aethrixStats.apiMode === "Live") {
         return (
             <div className="py-20 flex flex-col items-center justify-center text-center">
                 <RefreshCw size={48} className="animate-spin mb-4 text-[#00ff41]" />
@@ -277,15 +272,15 @@ export function Mercados() {
         );
     }
 
-    if (error) {
+    if (aethrixStats.apiMode === "Error") {
         return (
             <div className="py-20 flex flex-col items-center justify-center text-center">
                 <div className="bg-red-600 text-white px-4 py-2 font-black uppercase mb-4 shadow-[4px_4px_0_rgba(0,0,0,1)]">
                     CRITICAL ERROR
                 </div>
-                <div className="text-3xl font-black uppercase italic tracking-tighter">{error}</div>
+                <div className="text-3xl font-black uppercase italic tracking-tighter">Connectivity error. Retrying...</div>
                 <button
-                    onClick={loadData}
+                    onClick={refreshData}
                     className="mt-6 bg-black text-[#00ff41] px-8 py-4 border-4 border-black font-black uppercase shadow-[6px_6px_0_rgba(0,0,0,1)] hover:translate-x-1 hover:translate-y-1 hover:shadow-none transition-all"
                 >
                     Reconnect Uplink
@@ -333,7 +328,7 @@ export function Mercados() {
                             <span className="text-xs font-black uppercase tracking-tighter">Live Telemetry Active</span>
                         </div>
                         <button
-                            onClick={loadData}
+                            onClick={refreshData}
                             disabled={isRefreshing}
                             className="bg-black text-white px-6 py-2 border-2 border-black font-black uppercase text-xs hover:bg-white hover:text-black transition-colors flex items-center gap-2"
                         >
@@ -381,19 +376,19 @@ export function Mercados() {
                     {/* Navigation HUD */}
                     <div className="absolute top-0 right-0 p-4 z-40">
                         <div className="flex flex-col items-end gap-1">
-                            <div className="bg-black text-[#00ff41] px-2 py-0.5 text-[8px] font-black uppercase">Telemetry ID: {Math.random().toString(16).slice(2, 8)}</div>
+                            <div className="bg-black text-[#00ff41] px-2 py-0.5 text-[8px] font-black uppercase">Telemetry ID: {pool?.id?.substring(0, 8)}</div>
                             <div className="bg-[#00ff41] text-black px-2 py-0.5 text-[8px] font-black uppercase">Terminal: active</div>
                         </div>
                     </div>
                     {/* Empty State */}
-                    {(!pool && !loading) && (
+                    {!pool && (
                         <div className="text-center bg-gray-50 border-4 border-black border-dashed p-12 w-full max-w-sm">
                             <div className="text-3xl font-black uppercase italic mb-2">Deck Exhausted</div>
                             <p className="text-xs font-bold text-gray-400 uppercase mb-6 leading-relaxed">
                                 No more high-confidence alpha detected in current latency window.
                             </p>
                             <button
-                                onClick={loadData}
+                                onClick={refreshData}
                                 className="bg-black text-[#00ff41] px-8 py-4 border-4 border-black font-black uppercase shadow-[6px_6px_0_rgba(0,0,0,1)] hover:translate-x-1 hover:translate-y-1 hover:shadow-none transition-all"
                             >
                                 Re-Scan Network

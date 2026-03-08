@@ -32,6 +32,8 @@ export interface AethrixPool {
     priceChange24h?: number;
     txns5m: { buys: number; sells: number };
     score: number;
+    alphaScore?: number;
+    alphaReasons?: string[];
     riskScore: number;
     zone: "PRIME" | "VOLATILE" | "STABLE" | "DANGER";
     priceUsd: number;

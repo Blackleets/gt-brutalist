@@ -45,6 +45,10 @@ export class AlphaScoringEngine {
         // Normalize final score 0-100
         const finalScore = Math.max(0, Math.min(100, Math.round(totalAlphaScore + (pool.score / 2))));
 
+        // Attach result to the pool object for UI consumption
+        pool.alphaScore = finalScore;
+        pool.alphaReasons = allReasons;
+
         // Emit signal if high alpha detected
         if (finalScore > 65) {
             const signal: AlphaSignal = {
