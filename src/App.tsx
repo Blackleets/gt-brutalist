@@ -1,5 +1,6 @@
 import { motion } from "framer-motion";
 import { Twitter, Send, Globe } from "lucide-react";
+import { SpeedInsights } from "@vercel/speed-insights/react";
 import { AppProvider, useAppStore } from "@/lib/store";
 import { Hero } from "@/components/modules/Hero";
 import { Header } from "@/components/modules/Header";
@@ -24,6 +25,7 @@ export default function App() {
   return (
     <AppProvider>
       <AppContent />
+      <SpeedInsights />
     </AppProvider>
   );
 }
