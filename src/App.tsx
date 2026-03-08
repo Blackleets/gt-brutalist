@@ -9,7 +9,6 @@ import { LiveGraph } from "@/components/modules/LiveGraph";
 import { StackMonitor } from "@/components/modules/StackMonitor";
 import { Notifications } from "@/components/modules/Alerts";
 import { TokenFactory } from "@/components/modules/TokenFactory";
-import { AegisAgent } from "@/components/modules/AegisAgent";
 import { Portfolio } from "@/components/modules/Portfolio";
 import { GlobalEngine } from "@/components/modules/GlobalEngine";
 import { SwapSimulator } from "@/components/modules/SwapSimulator";
@@ -19,6 +18,7 @@ import { ChartTerminal } from "@/components/modules/ChartTerminal";
 import { CommandCenter } from "@/components/modules/CommandCenter";
 import { AIBot } from "@/components/modules/AIBot";
 import { translations } from "@/lib/translations";
+import { SocialIntelligenceHub } from "@/components/modules/SocialIntelligenceHub";
 
 export default function App() {
   return (
@@ -60,9 +60,10 @@ function AppContent() {
           <>
             {!networkMode && <Hero />}
             <TokenFactory />
-            <AegisAgent />
-            <ArbitrageScanner />
-            <Mercados />
+            <div className="px-4 md:px-16 py-8">
+              <ArbitrageScanner />
+              <Mercados />
+            </div>
             <SwapSimulator />
             <LiveGraph />
             <ApiHub />
@@ -74,6 +75,12 @@ function AppContent() {
         {activeViewId === "CHART_TERMINAL" && <ChartTerminal />}
         {activeViewId === "PORTFOLIO" && <Portfolio />}
         {activeViewId === "COMMAND_CENTER" && <CommandCenter />}
+
+        {activeViewId === "SOCIAL_HUB" && (
+          <div className="px-4 md:px-16 py-8">
+            <SocialIntelligenceHub />
+          </div>
+        )}
 
         {/* CTA */}
         <section className="px-4 md:px-16 py-12 md:py-20 relative z-10">

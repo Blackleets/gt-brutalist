@@ -55,9 +55,9 @@ const AlphaCard = memo(({ pool, onSwipe, isTop, isAuthorized, onSnipe }: AlphaCa
             drag={isTop ? "x" : false}
             dragConstraints={{ left: 0, right: 0 }}
             onDragEnd={handleDragEnd}
-            className="absolute inset-0 flex items-center justify-center p-4 touch-none"
+            className="absolute inset-0 flex items-center justify-center p-2 md:p-4 touch-none"
         >
-            <div className={`w-full max-w-sm aspect-[3/4] bg-white border-4 border-black shadow-[12px_12px_0_rgba(0,0,0,1)] relative overflow-hidden flex flex-col ${!isTop ? 'scale-95 translate-y-4 opacity-40 pointer-events-none' : ''}`}>
+            <div className={`w-full max-w-[340px] md:max-w-sm aspect-[3/4] bg-white border-4 border-black shadow-[8px_8px_0_rgba(0,0,0,1)] md:shadow-[12px_12px_0_rgba(0,0,0,1)] relative overflow-hidden flex flex-col ${!isTop ? 'scale-95 translate-y-4 opacity-40 pointer-events-none' : ''}`}>
                 {/* Grid Background */}
                 <div className="absolute inset-0 opacity-[0.03] pointer-events-none bg-[linear-gradient(to_right,#808080_1px,transparent_1px),linear-gradient(to_bottom,#808080_1px,transparent_1px)] bg-[size:20px_20px]"></div>
 
@@ -74,28 +74,28 @@ const AlphaCard = memo(({ pool, onSwipe, isTop, isAuthorized, onSnipe }: AlphaCa
                 <div className="absolute top-0 left-0 w-full h-1 bg-black" />
 
                 {/* Top Section */}
-                <div className="p-6 relative z-10 flex-1">
-                    <div className="flex justify-between items-start mb-6">
-                        <div className="flex items-center gap-4">
-                            <div className="w-16 h-16 border-4 border-black bg-zinc-100 flex items-center justify-center overflow-hidden shadow-[4px_4px_0_rgba(0,0,0,1)] bg-white">
+                <div className="p-4 md:p-6 relative z-10 flex-1">
+                    <div className="flex justify-between items-start mb-4 md:mb-6">
+                        <div className="flex items-center gap-3 md:gap-4">
+                            <div className="w-12 h-12 md:w-16 md:h-16 border-4 border-black bg-zinc-100 flex items-center justify-center overflow-hidden shadow-[4px_4px_0_rgba(0,0,0,1)] bg-white">
                                 {(() => {
                                     const logo = getTokenLogo(pool.baseToken.symbol, pool.baseToken.logoUrl);
                                     return logo ? (
                                         <img src={logo} alt={pool.baseToken.symbol} className="w-full h-full object-cover" />
                                     ) : (
-                                        <Zap size={24} className="text-zinc-300" />
+                                        <Zap size={20} className="text-zinc-300" />
                                     );
                                 })()}
                             </div>
                             <div>
-                                <h3 className="text-3xl font-black uppercase tracking-tighter leading-none italic">{pool.baseToken.symbol}</h3>
-                                <p className="text-[10px] font-bold text-gray-500 uppercase tracking-widest mt-1 opacity-60">
+                                <h3 className="text-2xl md:text-3xl font-black uppercase tracking-tighter leading-none italic">{pool.baseToken.symbol}</h3>
+                                <p className="text-[8px] md:text-[10px] font-bold text-gray-500 uppercase tracking-widest mt-1 opacity-60">
                                     {pool.chain} :: {pool.dex}
                                 </p>
                             </div>
                         </div>
                         {hasSmartMoney && (
-                            <div className="bg-[#00ff41] text-black px-2 py-1 text-[10px] font-black uppercase border-2 border-black shadow-[2px_2px_0_rgba(0,0,0,1)]">
+                            <div className="bg-[#00ff41] text-black px-2 py-1 text-[8px] md:text-[10px] font-black uppercase border-2 border-black shadow-[2px_2px_0_rgba(0,0,0,1)]">
                                 SMART
                             </div>
                         )}
@@ -148,34 +148,35 @@ const AlphaCard = memo(({ pool, onSwipe, isTop, isAuthorized, onSnipe }: AlphaCa
 
                                     {!isAuthorized ? (
                                         <div className="flex flex-col items-center">
-                                            <div className="w-8 h-8 rounded-full border-2 border-[#00ff41] border-dashed animate-spin flex items-center justify-center mb-1">
-                                                <Lock size={12} />
+                                            <div className="w-6 h-6 md:w-8 md:h-8 rounded-full border-2 border-[#00ff41] border-dashed animate-spin flex items-center justify-center mb-1">
+                                                <Lock size={10} />
                                             </div>
-                                            <span className="text-[8px] font-black uppercase text-[#00ff41]">Encrypted</span>
+                                            <span className="text-[7px] md:text-[8px] font-black uppercase text-[#00ff41]">Secure</span>
                                         </div>
                                     ) : (
                                         <div className="flex flex-col items-end">
-                                            <div className="text-3xl font-black italic tracking-tighter text-[#00ff41]">
+                                            <div className="text-2xl md:text-3xl font-black italic tracking-tighter text-[#00ff41]">
                                                 {pool.score}%
                                             </div>
-                                            <div className="text-[9px] font-black uppercase opacity-60">High Confidence</div>
+                                            <div className="text-[8px] md:text-[9px] font-black uppercase opacity-60">High Conf.</div>
                                         </div>
                                     )}
                                 </div>
 
                                 {/* ALPHA REASONS (DYNAMIC) - Only if authorized */}
                                 {isAuthorized && pool.alphaReasons && pool.alphaReasons.length > 0 && (
-                                    <div className="mt-4 p-2 bg-[#00ff4115] border border-[#00ff41] border-dashed">
-                                        <div className="text-[8px] font-black uppercase text-[#00ff41] mb-1 opacity-80 flex items-center gap-1">
+                                    <div className="mt-2 md:mt-4 p-1.5 md:p-2 bg-[#00ff4110] border border-[#00ff41] border-dashed">
+                                        <div className="text-[7px] md:text-[8px] font-black uppercase text-[#00ff41] mb-1 opacity-80 flex items-center gap-1">
                                             <Zap size={8} className="animate-pulse" />
-                                            Engine Insights
+                                            Insights
                                         </div>
                                         <div className="flex flex-wrap gap-1">
-                                            {pool.alphaReasons.slice(0, 3).map((reason, idx) => (
-                                                <div key={idx} className="bg-[#00ff41] text-black px-1 py-0.5 text-[7px] font-black uppercase leading-none">
+                                            {pool.alphaReasons.slice(0, 2).map((reason, idx) => (
+                                                <div key={idx} className="bg-[#00ff41] text-black px-1 py-0.5 text-[6px] md:text-[7px] font-black uppercase leading-none truncate max-w-[80px] md:max-w-none">
                                                     {reason}
                                                 </div>
                                             ))}
+                                            {pool.alphaReasons.length > 2 && <span className="text-[6px] font-black text-[#00ff41] opacity-50">+MORE</span>}
                                         </div>
                                     </div>
                                 )}
@@ -350,13 +351,13 @@ export function Mercados() {
                             <div className="text-[9px] font-black uppercase text-gray-400 mt-1">Live Pairs Indexing</div>
                         </div>
 
-                        <div className="relative border-l-2 border-black/10 pl-6">
-                            <div className="flex items-center gap-1 mb-2">
-                                <ShieldAlert size={12} className="text-[#00ff41]" />
-                                <div className="text-[10px] font-black text-gray-400 uppercase tracking-widest">Alpha Alerts</div>
+                        <div className="relative border-l-2 border-black/10 pl-4 md:pl-6">
+                            <div className="flex items-center gap-1 mb-1 md:mb-2">
+                                <ShieldAlert size={10} className="text-[#00ff41] md:w-[12px]" />
+                                <div className="text-[8px] md:text-[10px] font-black text-gray-400 uppercase tracking-widest">Alpha Alerts</div>
                             </div>
-                            <div className="text-4xl font-black italic text-[#00ff41]">{activePools.filter(p => p.score > 70).length}</div>
-                            <div className="text-[9px] font-black uppercase text-gray-400 mt-1">High-Prob Signals</div>
+                            <div className="text-3xl md:text-4xl font-black italic text-[#00ff41]">{activePools.filter(p => p.score > 70).length}</div>
+                            <div className="text-[8px] md:text-[9px] font-black uppercase text-gray-400 mt-1">High-Prob</div>
                         </div>
                     </div>
                 </div>

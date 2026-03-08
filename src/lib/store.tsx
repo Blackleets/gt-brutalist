@@ -35,6 +35,12 @@ export interface WalletState {
     tokens: WalletToken[];
     history: WalletActivity[];
     isWatchOnly?: boolean;
+    identity?: {
+        uid: string;
+        rank: string;
+        level: number;
+        xp: number;
+    };
 }
 
 export interface AethrixStats {
@@ -120,6 +126,30 @@ export interface ExecutedArb {
     timestamp: number;
 }
 
+export interface KOLSignal {
+    id: string;
+    tokenSymbol: string;
+    tokenAddress: string;
+    kols: string[];
+    followerCount: string;
+    impactScore: number;
+    mentions: number;
+    timestamp: number;
+    isConfirmation: boolean;
+    tweetText?: string;
+    tweetUrl?: string;
+}
+
+export interface ChatMessage {
+    id: string;
+    sender: string;
+    identity: string;
+    text: string;
+    timestamp: number;
+    isPremium: boolean;
+    isOwner?: boolean;
+}
+
 export interface AppState {
     selectedChain: ChainId;
     setSelectedChain: (chain: ChainId) => void;
@@ -159,7 +189,7 @@ export interface AppState {
     setNetworkMode: (enabled: boolean) => void;
     globalRankings: AethrixPool[];
     setGlobalRankings: (rankings: AethrixPool[]) => void;
-    executeSwap: (params: { fromToken: string; toToken: string; fromAmount: number; toAmount: number; chain: string }) => Promise<string>;
+    executeSwap: (params: { fromToken: string; toToken: string; fromAmount: number; toAmount: number; chain: string; slippage?: string; bribe?: string }) => Promise<string>;
     nativePrices: Record<string, number>;
     networkFeed: PulseSignal[];
     addFeedEvent: (event: PulseSignal) => void;
@@ -203,6 +233,23 @@ export interface AppState {
     // Audio System
     audioEnabled: boolean;
     setAudioEnabled: (enabled: boolean) => void;
+
+    kolSignals: KOLSignal[];
+    addKOLSignal: (signal: KOLSignal) => void;
+    chatMessages: ChatMessage[];
+    addChatMessage: (msg: Omit<ChatMessage, "id" | "timestamp">) => void;
+
+    // Command Center States
+    executionParams: {
+        slippage: string;
+        bribePriority: "STANDARD" | "HIGH" | "ULTRA" | "CUSTOM";
+        customBribe: string;
+        mevProtection: boolean;
+        frontrunGuard: boolean;
+        antitoxic: boolean;
+        rpcNode: "PUBLIC" | "PRIVATE" | "VYTRONIX_ELITE";
+    };
+    setExecutionParams: (params: Partial<AppState["executionParams"]>) => void;
 }
 
 const AppContext = createContext<AppState | undefined>(undefined);
@@ -239,16 +286,16 @@ export function AppProvider({ children }: { children: ReactNode }) {
     });
 
     const [activeRpcPerChain, setActiveRpcPerChain] = useState<Record<ChainId, string>>({
-        bsc: CHAINS.bsc.environments[CHAINS.bsc.defaultEnvironment].defaultEndpoint,
-        solana: CHAINS.solana.environments[CHAINS.solana.defaultEnvironment].defaultEndpoint,
-        ethereum: CHAINS.ethereum.environments[CHAINS.ethereum.defaultEnvironment].defaultEndpoint,
+        bsc: import.meta.env.VITE_BSC_RPC || CHAINS.bsc.environments[CHAINS.bsc.defaultEnvironment].defaultEndpoint,
+        solana: import.meta.env.VITE_SOLANA_RPC || CHAINS.solana.environments[CHAINS.solana.defaultEnvironment].defaultEndpoint,
+        ethereum: import.meta.env.VITE_ETH_RPC || CHAINS.ethereum.environments[CHAINS.ethereum.defaultEnvironment].defaultEndpoint,
     });
 
-    const [apiKey, setApiKeyState] = useState<string>("");
+    const [apiKey, setApiKeyState] = useState<string>(() => import.meta.env.VITE_ANTIGRAVITY_API || "");
 
     useEffect(() => {
         const storedKey = localStorage.getItem("antigravity_api_key");
-        if (storedKey) {
+        if (storedKey && !import.meta.env.VITE_ANTIGRAVITY_API) {
             setApiKeyState(storedKey);
         }
     }, []);
@@ -333,7 +380,10 @@ export function AppProvider({ children }: { children: ReactNode }) {
             const authMessage = `Welcome to Vytronix Admin.\n\nSign to verify node ownership.\n\nNonce: ${Math.random().toString(36).substring(2, 11)}`;
 
             if (type === "phantom" || type === "solana" || type === "solflare") {
-                const provider = type === "solflare" ? (window.solflare || (window.solana?.isSolflare ? window.solana : undefined)) : window.solana;
+                const provider = type === "solflare"
+                    ? (window.solflare || (window.solana?.isSolflare ? window.solana : undefined))
+                    : (window.solana?.isPhantom ? window.solana : window.solana);
+
                 if (!provider?.connect) throw new Error(`${type.toUpperCase()}_EXTENSION_MISSING`);
                 const resp = await provider.connect();
                 const pubKey = resp.publicKey.toString();
@@ -344,7 +394,24 @@ export function AppProvider({ children }: { children: ReactNode }) {
                     await provider.signMessage(encodedMessage, "utf8");
                 }
 
-                setWallet({ connected: true, address: pubKey, chain: "SOL", balance: 0, providerType: type as WalletState["providerType"], tokens: [], history: [] });
+                // Generate or Restore Identity
+                const shortAddr = pubKey.substring(pubKey.length - 4).toUpperCase();
+                const savedId = localStorage.getItem("vytronix_identity");
+                let identity;
+
+                if (savedId) {
+                    identity = JSON.parse(savedId);
+                } else {
+                    identity = {
+                        uid: `V-ID-${shortAddr}-${Math.floor(Math.random() * 900) + 100}`,
+                        rank: "VYTRONIX_AGENT",
+                        level: 1,
+                        xp: 0
+                    };
+                    localStorage.setItem("vytronix_identity", JSON.stringify(identity));
+                }
+
+                setWallet({ connected: true, address: pubKey, chain: "SOL", balance: 0, providerType: type as WalletState["providerType"], tokens: [], history: [], identity });
                 localStorage.setItem("vytronix_wallet_address", pubKey);
                 localStorage.setItem("vytronix_wallet_provider", type);
                 addSystemLog(`${type.toUpperCase()} NODE ACTIVE.`, "success");
@@ -370,7 +437,24 @@ export function AppProvider({ children }: { children: ReactNode }) {
                     await bProvider.request({ method: "eth_sign", params: [address, hexMessage] });
                 }
 
-                setWallet({ connected: true, address: address, chain: "BSC", balance: 0, providerType: "binance", tokens: [], history: [] });
+                // Generate or Restore Identity
+                const shortAddr = address.substring(address.length - 4).toUpperCase();
+                const savedId = localStorage.getItem("vytronix_identity");
+                let identity;
+
+                if (savedId) {
+                    identity = JSON.parse(savedId);
+                } else {
+                    identity = {
+                        uid: `V-ID-${shortAddr}-${Math.floor(Math.random() * 900) + 100}`,
+                        rank: "VYTRONIX_AGENT",
+                        level: 1,
+                        xp: 0
+                    };
+                    localStorage.setItem("vytronix_identity", JSON.stringify(identity));
+                }
+
+                setWallet({ connected: true, address: address, chain: "BSC", balance: 0, providerType: "binance", tokens: [], history: [], identity });
                 localStorage.setItem("vytronix_wallet_address", address);
                 localStorage.setItem("vytronix_wallet_provider", "binance");
             }
@@ -380,16 +464,24 @@ export function AppProvider({ children }: { children: ReactNode }) {
                 const providers = window.ethereum?.providers || [];
 
                 if (type === "metamask") {
-                    provider = providers.find(p => p.isMetaMask && !p.isOKXWallet && !p.isOkxWallet) ||
+                    provider = providers.find((p: any) => p.isMetaMask && !p.isOKXWallet && !p.isOkxWallet) ||
                         (window.ethereum?.isMetaMask && !window.ethereum?.isOKXWallet && !window.ethereum?.isOkxWallet ? window.ethereum : undefined);
 
                     if (!provider && (window.ethereum?.isOKXWallet || window.ethereum?.isOkxWallet)) {
-                        throw new Error("Metamask missing or intercepted by OKX Wallet. Disable OKX or select it directly.");
+                        addSystemLog("METAMASK_INTERCEPTED_BY_OKX", "error");
                     }
-                } else if (type === "okx") {
+                }
+                else if (type === "okx") {
                     provider = window.okxwallet ||
-                        providers.find(p => p.isOKXWallet || p.isOkxWallet) ||
+                        providers.find((p: any) => p.isOKXWallet || p.isOkxWallet) ||
                         (window.ethereum?.isOKXWallet || window.ethereum?.isOkxWallet ? window.ethereum : undefined);
+                }
+                else if (type === "walletconnect") {
+                    provider = window.ethereum?.providers?.find((p: any) => p.isWalletConnect) || window.ethereum;
+                }
+
+                if (!provider) {
+                    provider = window.ethereum;
                 }
 
                 if (!provider) throw new Error(`${type.toUpperCase()}_EXTENSION_MISSING`);
@@ -399,9 +491,32 @@ export function AppProvider({ children }: { children: ReactNode }) {
 
                 addSystemLog(`WAITING FOR ${type.toUpperCase()} SIGN...`, "warning");
                 const hexMessage = "0x" + Array.from(new TextEncoder().encode(authMessage)).map(b => b.toString(16).padStart(2, "0")).join("");
-                await provider.request({ method: "personal_sign", params: [hexMessage, address] });
 
-                setWallet({ connected: true, address: address, chain: "BSC", balance: 0, providerType: type as WalletState["providerType"], tokens: [], history: [] });
+                try {
+                    await provider.request({ method: "personal_sign", params: [hexMessage, address] });
+                } catch (signErr) {
+                    console.warn("personal_sign failed, trying eth_sign", signErr);
+                    await provider.request({ method: "eth_sign", params: [address, hexMessage] });
+                }
+
+                // Generate or Restore Identity
+                const shortAddr = address.substring(address.length - 4).toUpperCase();
+                const savedId = localStorage.getItem("vytronix_identity");
+                let identity;
+
+                if (savedId) {
+                    identity = JSON.parse(savedId);
+                } else {
+                    identity = {
+                        uid: `V-ID-${shortAddr}-${Math.floor(Math.random() * 1000) + 100}`,
+                        rank: "VYTRONIX_AGENT",
+                        level: 1,
+                        xp: 0
+                    };
+                    localStorage.setItem("vytronix_identity", JSON.stringify(identity));
+                }
+
+                setWallet({ connected: true, address: address, chain: "BSC", balance: 0, providerType: type as WalletState["providerType"], tokens: [], history: [], identity });
                 localStorage.setItem("vytronix_wallet_address", address);
                 localStorage.setItem("vytronix_wallet_provider", type);
                 addSystemLog(`${type.toUpperCase()} NODE ACTIVE.`, "success");
@@ -520,11 +635,12 @@ export function AppProvider({ children }: { children: ReactNode }) {
 
     const [globalRankings, setGlobalRankings] = useState<AethrixPool[]>([]);
     const [nativePrices, setNativePrices] = useState<Record<string, number>>({
-        "native_sol": 145.0,
+        "native_sol": 185.0,
         "native_usdc": 1.0,
         "native_usdt": 1.0,
-        "native_bnb": 600.0,
-        "native_eth": 3100.0
+        "native_bnb": 620.0,
+        "native_eth": 3400.0,
+        "native_btc": 95000.0
     });
 
     const [networkFeed, setNetworkFeed] = useState<PulseSignal[]>([]);
@@ -566,9 +682,11 @@ export function AppProvider({ children }: { children: ReactNode }) {
     }, []);
 
     const [telegramToken, setTelegramToken] = useState<string>(() =>
-        localStorage.getItem("vytronix_tg_token") || "8759026886:AAHQRt0Qf-UR0uWQ4kyMwgeegjULIhwjlC0"
+        import.meta.env.VITE_TELEGRAM_TOKEN || localStorage.getItem("vytronix_tg_token") || "8759026886:AAHQRt0Qf-UR0uWQ4kyMwgeegjULIhwjlC0"
     );
-    const [telegramChatId, setTelegramChatId] = useState<string>(() => localStorage.getItem("vytronix_tg_chatid") || "");
+    const [telegramChatId, setTelegramChatId] = useState<string>(() =>
+        import.meta.env.VITE_TELEGRAM_CHAT_ID || localStorage.getItem("vytronix_tg_chatid") || ""
+    );
     const [telegramEnabled, setTelegramEnabled] = useState<boolean>(() => {
         const stored = localStorage.getItem("vytronix_tg_enabled");
         return stored === null ? true : stored === "true";
@@ -614,6 +732,28 @@ export function AppProvider({ children }: { children: ReactNode }) {
         setAuthorizedWallets(prev => {
             const next = prev.filter(a => a !== address);
             localStorage.setItem("vytronix_authorized_wallets", JSON.stringify(next));
+            return next;
+        });
+    }, []);
+
+    // COMMAND CENTER PARAMETERS
+    const [executionParams, setExecutionParamsState] = useState(() => {
+        const stored = localStorage.getItem("vytronix_execution_params");
+        return stored ? JSON.parse(stored) : {
+            slippage: "0.5",
+            bribePriority: "HIGH",
+            customBribe: "0.01",
+            mevProtection: true,
+            frontrunGuard: true,
+            antitoxic: false,
+            rpcNode: "VYTRONIX_ELITE"
+        };
+    });
+
+    const setExecutionParams = useCallback((newParams: Partial<typeof executionParams>) => {
+        setExecutionParamsState((prev: typeof executionParams) => {
+            const next = { ...prev, ...newParams };
+            localStorage.setItem("vytronix_execution_params", JSON.stringify(next));
             return next;
         });
     }, []);
@@ -737,15 +877,17 @@ export function AppProvider({ children }: { children: ReactNode }) {
                 const data = await res.json();
                 if (data && data.solana) {
                     setNativePrices({
-                        "native_sol": data.solana?.usd || 145.0,
+                        "native_sol": data.solana?.usd || 185.0,
                         "native_usdc": data["usd-coin"]?.usd || 1.0,
                         "native_usdt": data.tether?.usd || 1.0,
-                        "native_bnb": data.binancecoin?.usd || 600.0,
-                        "native_eth": data.ethereum?.usd || 3100.0,
-                        "native_btc": data.bitcoin?.usd || 97000.0,
+                        "native_bnb": data.binancecoin?.usd || 620.0,
+                        "native_eth": data.ethereum?.usd || 3400.0,
+                        "native_btc": data.bitcoin?.usd || 95000.0,
                     });
                 }
-            } catch (e) { console.warn("Vytronix Prices Fail", e); }
+            } catch (e) {
+                console.warn("Vytronix Prices Fail - Using Fallbacks", e);
+            }
         };
         fetchPrices();
         const interval = setInterval(fetchPrices, 60000);
@@ -782,7 +924,9 @@ export function AppProvider({ children }: { children: ReactNode }) {
         ];
     });
 
-    const [bscScanKey, setBscScanKeyState] = useState<string>(() => localStorage.getItem("vytronix_bscscan_key") || "");
+    const [bscScanKey, setBscScanKeyState] = useState<string>(() =>
+        import.meta.env.VITE_BSCSCAN_API_KEY || localStorage.getItem("vytronix_bscscan_key") || ""
+    );
     const [smartMoneyActivity, setSmartMoneyActivity] = useState<Record<string, SmartActivity>>({});
     const lastSmartRefreshRef = useRef<number>(0);
 
@@ -975,7 +1119,7 @@ export function AppProvider({ children }: { children: ReactNode }) {
         localStorage.removeItem("vytronix_wallet_provider");
     }, []);
 
-    const executeSwap = useCallback(async (params: { fromToken: string; toToken: string; fromAmount: number; toAmount: number; chain: string }) => {
+    const executeSwap = useCallback(async (params: { fromToken: string; toToken: string; fromAmount: number; toAmount: number; chain: string; slippage?: string; bribe?: string }) => {
         if (!wallet.connected || wallet.isWatchOnly || typeof window === 'undefined') {
             throw new Error("No web3 wallet connected for real execution.");
         }
@@ -1024,7 +1168,7 @@ export function AppProvider({ children }: { children: ReactNode }) {
 
         // Fallback or unrecognized provider
         return "0x" + Array.from({ length: 64 }, () => Math.floor(Math.random() * 16).toString(16)).join('');
-    }, [wallet, activeRpcPerChain]);
+    }, [wallet, activeRpcPerChain, executionParams]);
 
     const setGlobalRankingsStable = useCallback((rankings: AethrixPool[]) => {
         setGlobalRankings(rankings);
@@ -1036,6 +1180,39 @@ export function AppProvider({ children }: { children: ReactNode }) {
 
     const setPrefilledSwapStable = useCallback((swap: { fromSymbol: string; toSymbol: string; amount?: number } | null) => {
         setPrefilledSwap(swap);
+    }, []);
+
+    const [kolSignals, setKolSignals] = useState<KOLSignal[]>([]);
+
+    const addKOLSignal = useCallback((signal: KOLSignal) => {
+        setKolSignals(prev => {
+            // Check if already exists to update or add
+            const existingIdx = prev.findIndex(s => s.tokenAddress === signal.tokenAddress);
+            if (existingIdx >= 0) {
+                const updated = [...prev];
+                updated[existingIdx] = signal;
+                return updated.sort((a, b) => b.timestamp - a.timestamp).slice(0, 10);
+            }
+            return [signal, ...prev].sort((a, b) => b.timestamp - a.timestamp).slice(0, 10);
+        });
+    }, []);
+    const [chatMessages, setChatMessages] = useState<ChatMessage[]>(() => {
+        try {
+            const stored = localStorage.getItem("vytronix_chat_logs");
+            return stored ? JSON.parse(stored) : [
+                { id: "1", sender: "SYSTEM", identity: "AI_ORACLE", text: "SOCIAL_PULSE_UPLINK :: SECURE_CHANNEL_ESTABLISHED", timestamp: Date.now() - 3600000, isPremium: true, isOwner: true },
+                { id: "2", sender: "SYSTEM", identity: "CORE_DEV", text: "Alpha signals detected in SOL/USDC pairs. Monitor KOL feed.", timestamp: Date.now() - 1800000, isPremium: true, isOwner: true }
+            ];
+        } catch { return []; }
+    });
+
+    const addChatMessage = useCallback((msg: Omit<ChatMessage, "id" | "timestamp">) => {
+        setChatMessages(prev => {
+            const next = [...prev, { ...msg, id: Math.random().toString(36).substr(2, 9), timestamp: Date.now() }];
+            localStorage.setItem("vytronix_chat_logs", JSON.stringify(next.slice(-50)));
+            return next;
+        });
+        audio.click();
     }, []);
 
     const contextValue = useMemo(() => ({
@@ -1108,8 +1285,10 @@ export function AppProvider({ children }: { children: ReactNode }) {
         setActiveViewId,
         language,
         setLanguage,
-        audioEnabled,
-        setAudioEnabled
+        audioEnabled, setAudioEnabled,
+        kolSignals, addKOLSignal,
+        chatMessages, addChatMessage,
+        executionParams, setExecutionParams
     }), [
         selectedChain, activeRpcPerChain, activeEnvPerChain, apiKey, wallet, aethrixStats, latency, rpcHealth,
         alertsEnabled, activeAlerts, watchlist, positionSnapshots, smartWallets, bscScanKey, smartMoneyActivity,
@@ -1126,7 +1305,10 @@ export function AppProvider({ children }: { children: ReactNode }) {
         adminConfig, setAdminConfig,
         activeViewId, setActiveViewId,
         language, setLanguage,
-        audioEnabled, setAudioEnabled
+        audioEnabled, setAudioEnabled,
+        kolSignals, addKOLSignal,
+        chatMessages, addChatMessage,
+        executionParams, setExecutionParams
     ]);
 
     return (

@@ -3,6 +3,7 @@ import { motion, AnimatePresence, useDragControls, useMotionValue, useSpring, us
 import { X, Terminal, ArrowRight, Send, MessageSquareText, Trash2 } from "lucide-react";
 import { useAppStore } from "@/lib/store";
 import { translations } from "@/lib/translations";
+import { findAnswer } from "@/lib/VytronixKnowledge";
 
 const BrutalistRobot = ({ isActive, tiltX, tiltY }: { isActive: boolean, tiltX: MotionValue<number>, tiltY: MotionValue<number> }) => (
     <motion.svg
@@ -62,10 +63,11 @@ const DEFAULT_HISTORY = (lang: string) => [
 ];
 
 export function AIBot() {
-    const { networkMode, wallet, networkFeed, arbitrageOpportunities, language } = useAppStore();
+    const { networkMode, wallet, networkFeed, arbitrageOpportunities, language, kolSignals } = useAppStore();
     const t = translations[language];
     const lastFeedCount = useRef(networkFeed.length);
     const lastArbCount = useRef(arbitrageOpportunities.length);
+    const alertedTokens = useRef<Set<string>>(new Set());
 
     const QUICK_COMMANDS = [
         { label: t.bot_quick_audit, cmd: "audit " },
@@ -242,6 +244,43 @@ export function AIBot() {
         }
     }, [arbitrageOpportunities, networkMode, language, t.bot_arb_alert]);
 
+    // SOCIAL INTELLIGENCE PROACTIVE: Listen to KOL signals for high-conviction alerts
+    useEffect(() => {
+        if (!networkMode) return;
+
+        kolSignals.forEach(signal => {
+            const token = signal.tokenSymbol;
+            // Trigger alert if 2+ KOLs mention OR it's a confirmed high-impact signal (impact > 75)
+            const isHighConviction = (signal.kols.length >= 2 || signal.isConfirmation) && signal.impactScore > 75;
+
+            if (isHighConviction && !alertedTokens.current.has(token)) {
+                alertedTokens.current.add(token);
+
+                const botMsg = language === 'es'
+                    ? `📡 ALERTA SOCIAL: $${token} detectado con alta convicción. Mencionado por ${signal.kols.length} KOLs con impacto de ${signal.impactScore}%.`
+                    : `📡 SOCIAL ALERT: $${token} detected with high conviction. Mentioned by ${signal.kols.length} key influencers. Impact: ${signal.impactScore}%.`;
+
+                // Add to chat and show tooltip
+                setTimeout(() => {
+                    setChatHistory((prev: ChatMessage[]) => {
+                        if (prev.some(m => m.text === botMsg)) return prev;
+                        return [...prev, { sender: "bot", text: botMsg }];
+                    });
+
+                    if (!isChatOpen) {
+                        setDynamicAlert(botMsg);
+                        setMessageIndex(-1); // Signal for dynamic alert
+                        setIsTooltipVisible(true);
+                    }
+                }, 200);
+
+                if (!isChatOpen) {
+                    setTimeout(() => setIsTooltipVisible(false), 10000);
+                }
+            }
+        });
+    }, [kolSignals, networkMode, isChatOpen, language]);
+
     // DERIVED GLOBAL MOOD: Fast pulse if hyperactive, slow if calm
     const [hyperActive, setHyperActive] = useState(false);
     useEffect(() => {
@@ -324,17 +363,36 @@ export function AIBot() {
             }
 
             let botReply = "";
+
+            // PRIORITY 1: Tactical Commands
             if (lowerMsg.includes("precio") || lowerMsg.includes("price") || lowerMsg.includes("价格")) {
                 botReply = t.bot_price_reply;
-            } else if (lowerMsg.includes("whale") || lowerMsg.includes("ballena") || lowerMsg.includes("大户")) {
+            } else if (lowerMsg === "whales" || lowerMsg === "ballenas" || lowerMsg === "ballena") {
                 botReply = t.bot_whale_reply.replace('{count}', networkFeed.length.toString());
+            } else if (lowerMsg === "arbitrage" || lowerMsg === "arbitraje") {
+                botReply = t.bot_arb_alert.replace('{token}', 'SOL/USDC').replace('{spread}', '1.2').replace('{buy}', 'Jupiter').replace('{sell}', 'Orca');
+            } else if (lowerMsg === "audit" || lowerMsg === "auditar") {
+                botReply = language === 'es' ? "CA_SCAN: Ingrésa una dirección de contrato válida para auditar." : "CA_SCAN: Enter a real contract hash above to audit.";
             } else {
-                botReply = t.bot_command_reply;
+                // PRIORITY 2: Strategic Reasoning Knowledge Base
+                const knowledgeAnswer = findAnswer(userMsg, language as "en" | "es" | "zh");
+                if (knowledgeAnswer) {
+                    botReply = knowledgeAnswer;
+                } else {
+                    botReply = t.bot_command_reply;
+                }
             }
 
-            setChatHistory((prev: ChatMessage[]) => [...prev, { sender: "bot", text: botReply }]);
-            setIsThinking(false);
-        }, 1500);
+            // Simulated reasoning delay based on complexity
+            const complexityBonus = userMsg.length > 30 ? 600 : 0;
+
+            setIsThinking(true);
+            setTimeout(() => {
+                setChatHistory((prev: ChatMessage[]) => [...prev, { sender: "bot", text: botReply }]);
+                setIsThinking(false);
+            }, 800 + complexityBonus);
+
+        }, 1000);
     };
 
 
@@ -348,7 +406,7 @@ export function AIBot() {
                 dragControls={dragControls}
                 dragMomentum={false}
                 dragElastic={0}
-                className="fixed bottom-6 right-6 z-50 flex flex-col items-end gap-2 text-left select-none"
+                className="fixed bottom-6 right-6 z-[9999] flex flex-col items-end gap-2 text-left select-none"
             >
 
                 {/* --- Chat Window --- */}
@@ -359,7 +417,7 @@ export function AIBot() {
                             animate={{ opacity: 1, y: 0, scale: 1 }}
                             exit={{ opacity: 0, y: 20, scale: 0.95 }}
                             transition={{ duration: 0.2 }}
-                            className="w-[320px] sm:w-[380px] bg-white border-4 border-black shadow-[8px_8px_0_rgba(0,0,0,1)] flex flex-col mb-4 overflow-hidden"
+                            className="w-[calc(100vw-48px)] sm:w-[440px] bg-white border-4 border-black shadow-[12px_12px_0_rgba(0,0,0,1)] flex flex-col mb-4 overflow-hidden"
                         >
                             {/* Header */}
                             <div className={`bg-black text-[#00ff41] p-3 flex justify-between items-center border-b-4 border-black ${isGlitching ? 'translate-x-[2px] skew-x-1' : ''}`}>
@@ -421,7 +479,7 @@ export function AIBot() {
                             </div>
 
                             {/* Messages Area */}
-                            <div className="h-[300px] overflow-y-auto p-4 flex flex-col gap-4 bg-zinc-50">
+                            <div className="h-[380px] overflow-y-auto p-4 flex flex-col gap-4 bg-zinc-50 bg-[url('https://www.transparenttextures.com/patterns/carbon-fibre.png')]">
                                 {chatHistory.map((msg: ChatMessage, i: number) => (
                                     <div key={i} className={`flex w-full ${msg.sender === 'user' ? 'justify-end' : 'justify-start'}`}>
                                         <div className={`p-3 border-2 border-black max-w-[85%] ${msg.sender === 'user'

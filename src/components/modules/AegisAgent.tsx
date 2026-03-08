@@ -12,7 +12,7 @@ import { formatCurrency } from "@/lib/utils";
 type AgentState = "IDLE" | "SCANNING" | "ANALYZING" | "READY" | "EXECUTED";
 
 export function AegisAgent() {
-    const { globalRankings, wallet, selectedChain, positionSnapshots, executeSwap, addSystemLog, language, audioEnabled } = useAppStore();
+    const { globalRankings, wallet, selectedChain, positionSnapshots, executeSwap, addSystemLog, language, audioEnabled, executionParams } = useAppStore();
     const { canAccessAlpha } = useAlphaGuard();
     const t = translations[language];
 
@@ -111,7 +111,9 @@ export function AegisAgent() {
                     toToken: currentTarget.baseToken.symbol,
                     fromAmount: 0.1,
                     toAmount: (0.1 * (selectedChain === "solana" ? 145 : 600)) / currentTarget.priceUsd,
-                    chain: selectedChain === "solana" ? "SOL" : "BSC"
+                    chain: selectedChain === "solana" ? "SOL" : "BSC",
+                    slippage: executionParams.slippage,
+                    bribe: executionParams.bribePriority === "CUSTOM" ? executionParams.customBribe : (executionParams.bribePriority === "STANDARD" ? "0.0001" : executionParams.bribePriority === "HIGH" ? "0.005" : "0.025")
                 });
 
                 addSystemLog(`AEGIS EXECUTION SUCCESS: ${currentTarget.baseToken.symbol} | Hash: ${hash.slice(0, 10)}...`, "success");

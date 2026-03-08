@@ -1,22 +1,26 @@
-import { useState } from "react";
 import { useAppStore } from "@/lib/store";
-import { Shield, Zap, Settings, Skull, ZapOff } from "lucide-react";
+import { Shield, Zap, Settings, Skull, ZapOff, Send } from "lucide-react";
+import { audio } from "@/lib/audio";
 
 export function CommandCenter() {
-    const { networkMode } = useAppStore();
+    const { networkMode, executionParams, setExecutionParams, telegramEnabled, telegramChatId, setActiveViewId, addSystemLog } = useAppStore();
 
-    // Command center states
-    const [slippage, setSlippage] = useState("0.5");
-    const [bribePriority, setBribePriority] = useState<"STANDARD" | "HIGH" | "ULTRA" | "CUSTOM">("HIGH");
-    const [customBribe, setCustomBribe] = useState("0.01");
+    // Mapping tactical params for readability
+    const {
+        slippage,
+        bribePriority,
+        customBribe,
+        mevProtection,
+        frontrunGuard,
+        antitoxic,
+        rpcNode
+    } = executionParams;
 
-    // Protection features
-    const [mevProtection, setMevProtection] = useState(true);
-    const [frontrunGuard, setFrontrunGuard] = useState(true);
-    const [antitoxic, setAntitoxic] = useState(false);
+    const isTelegramHealthy = telegramEnabled && telegramChatId.length > 5;
 
-    // Node selection
-    const [rpcNode, setRpcNode] = useState<"PUBLIC" | "PRIVATE" | "VYTRONIX_ELITE">("VYTRONIX_ELITE");
+    const handleParamChange = (newParams: Partial<typeof executionParams>) => {
+        setExecutionParams(newParams);
+    };
 
     return (
         <section className="px-4 md:px-16 py-8 md:py-16 relative z-10 w-full min-h-[80vh]">
@@ -30,9 +34,18 @@ export function CommandCenter() {
                         <h2 className="text-4xl md:text-6xl font-black uppercase tracking-tighter leading-none flex items-center gap-4">
                             Execution Params
                         </h2>
-                        <p className="text-gray-500 font-bold uppercase tracking-widest text-xs mt-2 max-w-xl">
-                            Configure institutional-grade sniper parameters, MEV bribing logic, and transaction defense protocols.
-                        </p>
+                        <div className="flex flex-wrap gap-2 mt-2">
+                            <p className="text-gray-500 font-bold uppercase tracking-widest text-xs max-w-xl">
+                                Configure institutional-grade sniper parameters, MEV bribing logic, and transaction defense protocols.
+                            </p>
+                            <div
+                                onClick={() => setActiveViewId('admin')}
+                                className={`px-2 py-0.5 border-2 flex items-center gap-2 text-[8px] font-black uppercase transition-all cursor-pointer hover:scale-105 active:scale-95 ${isTelegramHealthy ? "bg-[#00ff41]/10 border-[#00ff41] text-[#00ff41]" : "bg-red-500/10 border-red-500 text-red-500"}`}
+                                title="Click to configure in Admin Panel"
+                            >
+                                <Send size={10} /> {isTelegramHealthy ? "Telegram Relay: ACTIVE" : "Telegram Relay: OFF / CONFIG REQUIRED"}
+                            </div>
+                        </div>
                     </div>
 
                     {!networkMode && (
@@ -62,11 +75,11 @@ export function CommandCenter() {
                                     <button
                                         key={node.id}
                                         disabled={!networkMode}
-                                        onClick={() => setRpcNode(node.id as "PUBLIC" | "PRIVATE" | "VYTRONIX_ELITE")}
+                                        onClick={() => handleParamChange({ rpcNode: node.id as "PUBLIC" | "PRIVATE" | "VYTRONIX_ELITE" })}
                                         className={`flex flex-col items-start p-4 border-4 transition-all text-left ${!networkMode ? "bg-zinc-200 text-zinc-400 border-zinc-200 cursor-not-allowed" :
-                                                rpcNode === node.id
-                                                    ? "bg-black text-[#00ff41] border-black shadow-[4px_4px_0_rgba(0,255,65,1)] translate-x-[-2px] translate-y-[-2px]"
-                                                    : "bg-zinc-100 text-black border-transparent hover:border-black"
+                                            rpcNode === node.id
+                                                ? "bg-black text-[#00ff41] border-black shadow-[4px_4px_0_rgba(0,255,65,1)] translate-x-[-2px] translate-y-[-2px]"
+                                                : "bg-zinc-100 text-black border-transparent hover:border-black"
                                             }`}
                                     >
                                         <span className="font-black uppercase text-sm">{node.label}</span>
@@ -96,11 +109,11 @@ export function CommandCenter() {
                                     <button
                                         key={prio}
                                         disabled={!networkMode}
-                                        onClick={() => setBribePriority(prio as "STANDARD" | "HIGH" | "ULTRA" | "CUSTOM")}
+                                        onClick={() => handleParamChange({ bribePriority: prio as "STANDARD" | "HIGH" | "ULTRA" | "CUSTOM" })}
                                         className={`px-6 py-2 border-2 font-black uppercase text-xs transition-colors ${!networkMode ? "bg-zinc-200 text-zinc-400 border-zinc-200 cursor-not-allowed" :
-                                                bribePriority === prio
-                                                    ? "bg-rose-500 text-white border-rose-500"
-                                                    : "bg-white text-zinc-400 border-zinc-200 hover:border-black hover:text-black"
+                                            bribePriority === prio
+                                                ? "bg-rose-500 text-white border-rose-500"
+                                                : "bg-white text-zinc-400 border-zinc-200 hover:border-black hover:text-black"
                                             }`}
                                     >
                                         {prio} {prio !== "CUSTOM" && "BID"}
@@ -116,7 +129,7 @@ export function CommandCenter() {
                                         placeholder="0.01"
                                         value={customBribe}
                                         disabled={!networkMode}
-                                        onChange={(e) => setCustomBribe(e.target.value)}
+                                        onChange={(e) => handleParamChange({ customBribe: e.target.value })}
                                         className="w-full h-full outline-none font-black text-xl uppercase placeholder:text-zinc-300 bg-transparent disabled:text-zinc-400 disabled:cursor-not-allowed"
                                         step="0.001"
                                     />
@@ -147,7 +160,7 @@ export function CommandCenter() {
                                     <span className="font-black uppercase text-sm group-hover:text-[#00ff41] transition-colors">MEV Protection</span>
                                     <span className="text-[9px] font-bold text-zinc-500 uppercase">Obfuscate TX from public mempool</span>
                                 </div>
-                                <div className={`w-12 h-6 border-2 flex items-center p-0.5 transition-colors ${mevProtection ? 'border-[#00ff41] bg-[#00ff41]/20' : 'border-zinc-600 bg-transparent'}`} onClick={() => setMevProtection(!mevProtection)}>
+                                <div className={`w-12 h-6 border-2 flex items-center p-0.5 transition-colors ${mevProtection ? 'border-[#00ff41] bg-[#00ff41]/20' : 'border-zinc-600 bg-transparent'}`} onClick={() => handleParamChange({ mevProtection: !mevProtection })}>
                                     <div className={`w-4 h-4 bg-[#00ff41] transition-transform ${mevProtection ? 'translate-x-6' : 'translate-x-0 bg-zinc-600'}`} />
                                 </div>
                             </label>
@@ -157,7 +170,7 @@ export function CommandCenter() {
                                     <span className="font-black uppercase text-sm group-hover:text-[#00ff41] transition-colors">Front-run Guard</span>
                                     <span className="text-[9px] font-bold text-zinc-500 uppercase">Auto-fail if sandwich attack detected</span>
                                 </div>
-                                <div className={`w-12 h-6 border-2 flex items-center p-0.5 transition-colors ${frontrunGuard ? 'border-[#00ff41] bg-[#00ff41]/20' : 'border-zinc-600 bg-transparent'}`} onClick={() => setFrontrunGuard(!frontrunGuard)}>
+                                <div className={`w-12 h-6 border-2 flex items-center p-0.5 transition-colors ${frontrunGuard ? 'border-[#00ff41] bg-[#00ff41]/20' : 'border-zinc-600 bg-transparent'}`} onClick={() => handleParamChange({ frontrunGuard: !frontrunGuard })}>
                                     <div className={`w-4 h-4 bg-[#00ff41] transition-transform ${frontrunGuard ? 'translate-x-6' : 'translate-x-0 bg-zinc-600'}`} />
                                 </div>
                             </label>
@@ -167,13 +180,19 @@ export function CommandCenter() {
                                     <span className="font-black uppercase text-sm group-hover:text-[#00ff41] transition-colors">Anti-Toxic Liquidity</span>
                                     <span className="text-[9px] font-bold text-zinc-500 uppercase">Skip pools with known honeypots</span>
                                 </div>
-                                <div className={`w-12 h-6 border-2 flex items-center p-0.5 transition-colors ${antitoxic ? 'border-[#00ff41] bg-[#00ff41]/20' : 'border-zinc-600 bg-transparent'}`} onClick={() => setAntitoxic(!antitoxic)}>
+                                <div className={`w-12 h-6 border-2 flex items-center p-0.5 transition-colors ${antitoxic ? 'border-[#00ff41] bg-[#00ff41]/20' : 'border-zinc-600 bg-transparent'}`} onClick={() => handleParamChange({ antitoxic: !antitoxic })}>
                                     <div className={`w-4 h-4 bg-[#00ff41] transition-transform ${antitoxic ? 'translate-x-6' : 'translate-x-0 bg-zinc-600'}`} />
                                 </div>
                             </label>
 
                             <div className="mt-auto">
-                                <button className="w-full bg-[#00ff41] text-black font-black uppercase py-4 hover:bg-white transition-colors border-2 border-transparent">
+                                <button
+                                    onClick={() => {
+                                        addSystemLog("SECURITY_PROFILE_APPLIED: AEGIS SHIELD ACTIVE", "success");
+                                        audio.blip();
+                                    }}
+                                    className="w-full bg-[#00ff41] text-black font-black uppercase py-4 hover:bg-white transition-colors border-2 border-transparent"
+                                >
                                     Apply Security Profile
                                 </button>
                             </div>
@@ -190,11 +209,11 @@ export function CommandCenter() {
                                     <button
                                         key={slip}
                                         disabled={!networkMode}
-                                        onClick={() => setSlippage(slip)}
+                                        onClick={() => handleParamChange({ slippage: slip })}
                                         className={`flex-1 py-2 font-black uppercase text-xs border-2 transition-colors ${!networkMode ? "bg-zinc-200 text-zinc-400 border-zinc-200 cursor-not-allowed" :
-                                                slippage === slip
-                                                    ? "bg-black text-[#fffc20] border-black"
-                                                    : "bg-white text-zinc-500 border-zinc-200 hover:border-black"
+                                            slippage === slip
+                                                ? "bg-black text-[#fffc20] border-black"
+                                                : "bg-white text-zinc-500 border-zinc-200 hover:border-black"
                                             }`}
                                     >
                                         {slip}{slip !== "Auto" ? "%" : ""}
@@ -209,7 +228,7 @@ export function CommandCenter() {
                                     placeholder="0.5"
                                     value={slippage}
                                     disabled={!networkMode}
-                                    onChange={(e) => setSlippage(e.target.value)}
+                                    onChange={(e) => handleParamChange({ slippage: e.target.value })}
                                     className="w-full h-full outline-none font-black text-xl bg-transparent disabled:text-zinc-400 disabled:cursor-not-allowed"
                                 />
                                 <span className="font-black text-black">%</span>

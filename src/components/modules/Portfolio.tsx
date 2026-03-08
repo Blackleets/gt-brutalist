@@ -226,6 +226,30 @@ export function Portfolio() {
                         </div>
                     </div>
 
+                    {hydratedPositions.length > 0 && (
+                        <div className="bg-black p-4 border-4 border-black shadow-[4px_4px_0_rgba(255,255,255,0.05)]">
+                            <div className="text-[10px] font-black uppercase text-zinc-500 mb-4 flex justify-between">
+                                <span>{t.port_pnl_chart}</span>
+                                <span className={`${hydratedPositions.reduce((acc, p) => acc + (p.pnlPercentage || 0), 0) >= 0 ? 'text-[#00ff41]' : 'text-[#ff003c]'}`}>
+                                    {hydratedPositions.reduce((acc, p) => acc + (p.pnlPercentage || 0), 0).toFixed(2)}% TOTAL
+                                </span>
+                            </div>
+                            <div className="flex h-12 w-full border-2 border-zinc-800 overflow-hidden">
+                                {hydratedPositions.map((pos) => (
+                                    <div
+                                        key={`chart-${pos.tokenAddress}`}
+                                        className={`flex-1 h-full transition-all hover:brightness-125 cursor-pointer relative group/bar ${pos.pnlPercentage >= 0 ? 'bg-profit' : 'bg-loss'} ${Math.abs(pos.pnlPercentage) > 50 ? 'opacity-100' : Math.abs(pos.pnlPercentage) > 20 ? 'opacity-70' : 'opacity-40'}`}
+                                        title={`${pos.symbol}: ${pos.pnlPercentage.toFixed(2)}%`}
+                                    >
+                                        <div className="absolute inset-0 flex items-center justify-center opacity-0 group-hover/bar:opacity-100 bg-black/60 pointer-events-none">
+                                            <span className="text-[8px] font-black text-white">{pos.symbol}</span>
+                                        </div>
+                                    </div>
+                                ))}
+                            </div>
+                        </div>
+                    )}
+
                     {hydratedPositions.length === 0 ? (
                         <div className="p-8 border-4 border-black border-dashed bg-white/5 text-center text-xs font-black uppercase text-zinc-600">
                             {t.port_no_simulations}

@@ -23,7 +23,7 @@ interface SwapToken {
 type SwapState = "idle" | "quoting" | "confirming" | "executing" | "success" | "error";
 
 export function SwapSimulator() {
-    const { globalRankings, wallet, selectedChain, recordSnapshot, addAlert, nativePrices, executeSwap, addSystemLog, prefilledSwap, setPrefilledSwap, adminConfig, language } = useAppStore();
+    const { globalRankings, wallet, selectedChain, recordSnapshot, addAlert, nativePrices, executeSwap, addSystemLog, prefilledSwap, setPrefilledSwap, adminConfig, language, audioEnabled, executionParams, setExecutionParams } = useAppStore();
     const t = translations[language];
 
     // Contract address lookup state
@@ -92,7 +92,6 @@ export function SwapSimulator() {
     const [tokenFrom, setTokenFrom] = useState<SwapToken | null>(null);
     const [tokenTo, setTokenTo] = useState<SwapToken | null>(null);
     const [amountIn, setAmountIn] = useState("");
-    const [slippage, setSlippage] = useState(0.5);
     const [swapState, setSwapState] = useState<SwapState>("idle");
     const [showFromPicker, setShowFromPicker] = useState(false);
     const [showToPicker, setShowToPicker] = useState(false);
@@ -128,6 +127,18 @@ export function SwapSimulator() {
             return () => clearTimeout(timer);
         }
     }, [availableTokens, tokenFrom, prefilledSwap]);
+
+    // Keep selected tokens in sync with real-time price updates (Global Sync)
+    useEffect(() => {
+        if (tokenFrom) {
+            const up = availableTokens.find(t => t.address === tokenFrom.address);
+            if (up && up.priceUsd !== tokenFrom.priceUsd) setTokenFrom(up);
+        }
+        if (tokenTo) {
+            const up = availableTokens.find(t => t.address === tokenTo.address);
+            if (up && up.priceUsd !== tokenTo.priceUsd) setTokenTo(up);
+        }
+    }, [availableTokens, tokenFrom?.address, tokenTo?.address, tokenFrom, tokenTo]);
 
     // Contract address lookup
     const handleContractSearch = async () => {
@@ -192,7 +203,8 @@ export function SwapSimulator() {
         const impact = Math.min(15, (inputUsd / Math.max(1, minLiq)) * 100);
 
         const outputAfterImpact = rawOutput * (1 - impact / 100);
-        const minRecv = outputAfterImpact * (1 - slippage / 100);
+        const slipVal = parseFloat(executionParams.slippage) || 0.5;
+        const minRecv = outputAfterImpact * (1 - slipVal / 100);
 
         let route = `${tokenFrom.symbol} → ${tokenTo.symbol}`;
         if (impact > 2) {
@@ -205,7 +217,7 @@ export function SwapSimulator() {
             routeInfo: route,
             minReceived: minRecv,
         };
-    }, [tokenFrom, tokenTo, amountIn, slippage]);
+    }, [tokenFrom, tokenTo, amountIn, executionParams.slippage]);
 
     const flipTokens = () => {
         setIsFlipping(true);
@@ -223,21 +235,23 @@ export function SwapSimulator() {
         if (!tokenFrom || !tokenTo || !amountIn || parseFloat(amountIn) <= 0) return;
 
         // Tactical Sound Effect for Swap Initialization
-        try {
-            const AudioContext = window.AudioContext || (window as unknown as { webkitAudioContext: typeof window.AudioContext }).webkitAudioContext;
-            const ctx = new AudioContext();
-            const osc = ctx.createOscillator();
-            const gain = ctx.createGain();
-            osc.connect(gain);
-            gain.connect(ctx.destination);
-            osc.type = 'sawtooth';
-            osc.frequency.setValueAtTime(400, ctx.currentTime);
-            osc.frequency.exponentialRampToValueAtTime(1200, ctx.currentTime + 0.15);
-            gain.gain.setValueAtTime(0.1, ctx.currentTime);
-            gain.gain.exponentialRampToValueAtTime(0.01, ctx.currentTime + 0.15);
-            osc.start();
-            osc.stop(ctx.currentTime + 0.15);
-        } catch (e) { void e; }
+        if (audioEnabled) {
+            try {
+                const AudioContext = window.AudioContext || (window as unknown as { webkitAudioContext: typeof window.AudioContext }).webkitAudioContext;
+                const ctx = new AudioContext();
+                const osc = ctx.createOscillator();
+                const gain = ctx.createGain();
+                osc.connect(gain);
+                gain.connect(ctx.destination);
+                osc.type = 'sawtooth';
+                osc.frequency.setValueAtTime(400, ctx.currentTime);
+                osc.frequency.exponentialRampToValueAtTime(1200, ctx.currentTime + 0.15);
+                gain.gain.setValueAtTime(0.1, ctx.currentTime);
+                gain.gain.exponentialRampToValueAtTime(0.01, ctx.currentTime + 0.15);
+                osc.start();
+                osc.stop(ctx.currentTime + 0.15);
+            } catch (e) { void e; }
+        }
 
         setSwapState("quoting");
         // Simulated quote fetching
@@ -253,7 +267,9 @@ export function SwapSimulator() {
                     toToken: tokenTo.symbol,
                     fromAmount: parseFloat(amountIn),
                     toAmount: amountOut,
-                    chain: tokenFrom.chain === "solana" ? "SOL" : "BSC"
+                    chain: tokenFrom.chain === "solana" ? "SOL" : "BSC",
+                    slippage: executionParams.slippage,
+                    bribe: executionParams.bribePriority === "CUSTOM" ? executionParams.customBribe : (executionParams.bribePriority === "STANDARD" ? "0.0001" : executionParams.bribePriority === "HIGH" ? "0.005" : "0.025")
                 });
 
                 setTxHash(hash);
@@ -563,7 +579,12 @@ export function SwapSimulator() {
                             <div className="flex justify-between items-center mb-2 md:mb-3">
                                 <span className="text-[10px] font-black uppercase tracking-widest text-gray-400">{t.swap_from}</span>
                                 <span className="text-[10px] font-bold text-gray-400">
-                                    {tokenFrom ? `≈ $${(parseFloat(amountIn || "0") * tokenFrom.priceUsd).toFixed(2)}` : ""}
+                                    {(() => {
+                                        const inNum = parseFloat(amountIn || "0");
+                                        const price = tokenFrom?.priceUsd || 185;
+                                        if (inNum > 0) return `≈ $${(inNum * price).toFixed(2)}`;
+                                        return tokenFrom ? `1 ${tokenFrom.symbol} ≈ $${price < 0.01 ? price.toFixed(6) : price.toFixed(2)}` : "";
+                                    })()}
                                 </span>
                             </div>
                             <div className="flex gap-2 md:gap-3 items-center">
@@ -622,15 +643,22 @@ export function SwapSimulator() {
                             <div className="flex justify-between items-center mb-2 md:mb-3">
                                 <span className="text-[10px] font-black uppercase tracking-widest text-gray-400">{t.swap_to}</span>
                                 <span className="text-[10px] font-bold text-gray-400">
-                                    {tokenTo ? `≈ $${(amountOut * tokenTo.priceUsd).toFixed(2)}` : ""}
+                                    {(() => {
+                                        const outNum = typeof amountOut === 'number' ? amountOut : parseFloat(amountOut || "0");
+                                        const price = tokenTo?.priceUsd || 1;
+                                        if (outNum > 0) return `≈ $${(outNum * price).toFixed(2)}`;
+                                        return tokenTo ? `1 ${tokenTo.symbol} ≈ $${price < 0.01 ? price.toFixed(6) : price.toFixed(2)}` : "";
+                                    })()}
                                 </span>
                             </div>
                             <div className="flex gap-2 md:gap-3 items-center">
                                 <div className="flex-1 text-2xl md:text-4xl font-black text-gray-800 min-w-0 truncate">
-                                    {amountOut > 0
-                                        ? (amountOut < 0.000001 ? amountOut.toExponential(4) : amountOut.toLocaleString(undefined, { maximumFractionDigits: 8 }))
-                                        : "0.00"
-                                    }
+                                    {(() => {
+                                        const outN = typeof amountOut === 'number' ? amountOut : 0;
+                                        if (outN <= 0) return "0.00";
+                                        if (outN < 0.000001) return outN.toExponential(4);
+                                        return outN.toLocaleString(undefined, { maximumFractionDigits: 8 });
+                                    })()}
                                 </div>
                                 <div className="static md:relative shrink-0">
                                     <button
@@ -683,15 +711,14 @@ export function SwapSimulator() {
                                         <span>{minReceived < 0.01 ? minReceived.toFixed(8) : minReceived.toFixed(6)} {tokenTo.symbol}</span>
                                     </div>
 
-                                    {/* Slippage */}
                                     <div className="flex justify-between items-center pt-2 border-t border-gray-200">
                                         <span className="text-[10px] font-black uppercase text-gray-400">{t.swap_slippage}</span>
                                         <div className="flex gap-1">
                                             {[0.1, 0.5, 1.0, 3.0].map((s) => (
                                                 <button
                                                     key={s}
-                                                    onClick={() => setSlippage(s)}
-                                                    className={`px-2 py-1 text-[10px] font-black border-2 transition-colors ${slippage === s ? 'bg-black text-white border-black' : 'border-gray-300 hover:border-black'}`}
+                                                    onClick={() => setExecutionParams({ slippage: s.toString() })}
+                                                    className={`px-2 py-1 text-[10px] font-black border-2 transition-colors ${parseFloat(executionParams.slippage) === s ? 'bg-black text-white border-black' : 'border-gray-300 hover:border-black'}`}
                                                     title={`Set slippage to ${s}%`}
                                                 >
                                                     {s}%

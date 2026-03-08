@@ -60,11 +60,21 @@ export function AdminModal({ isOpen, onClose }: AdminModalProps) {
         } catch (e) {
             const error = e as Error;
             setTestStatus("error");
-            setLastError(error.message || "Unknown Error");
+            
+            let displayError = error.message || t.admin_failed;
+            
+            // Intelligence: Specific Telegram recovery paths
+            if (displayError.toLowerCase().includes("bots can't send messages to bots")) {
+                displayError = t.admin_tg_err_bot_to_bot || "ERROR: Chat ID is a BOT. Use your personal ID.";
+            } else if (displayError.toLowerCase().includes("bot was blocked")) {
+                displayError = t.admin_tg_err_blocked || "ERROR: Bot blocked. Start the bot first.";
+            }
+            
+            setLastError(displayError);
             setTimeout(() => {
                 setTestStatus("idle");
                 setLastError(null);
-            }, 5000);
+            }, 8000);
         }
     };
 
@@ -132,8 +142,24 @@ export function AdminModal({ isOpen, onClose }: AdminModalProps) {
                                     </div>
 
                                     <div className="space-y-2">
-                                        <label className="text-[10px] font-black uppercase tracking-widest text-zinc-500">{t.admin_chat_id}</label>
-                                        <input type="text" value={chatId} onChange={(e) => setChatId(e.target.value.trim())} placeholder="-100xxxxxxx" className={`w-full border-2 border-black p-2 font-mono text-[10px] focus:ring-0 focus:outline-none ${chatId.startsWith("-") ? "bg-[#00ff41]/10" : "bg-red-500/10"}`} />
+                                        <div className="flex items-center justify-between">
+                                            <label className="text-[10px] font-black uppercase tracking-widest text-zinc-500">{t.admin_chat_id}</label>
+                                            <a 
+                                                href="https://t.me/userinfobot" 
+                                                target="_blank" 
+                                                rel="noopener noreferrer"
+                                                className="text-[8px] font-black text-blue-500 hover:text-black underline uppercase tracking-widest"
+                                            >
+                                                {t.admin_tg_get_id_help || "Get My ID"}
+                                            </a>
+                                        </div>
+                                        <input type="text" value={chatId} onChange={(e) => setChatId(e.target.value.trim())} placeholder="-100xxxxxxx" className={`w-full border-2 border-black p-2 font-mono text-[10px] focus:ring-0 focus:outline-none ${chatId.startsWith("-") || /^\d+$/.test(chatId) ? "bg-[#00ff41]/10" : "bg-red-500/10"}`} />
+                                        {chatId && !chatId.startsWith("-") && !/^\d+$/.test(chatId) && (
+                                            <p className="text-[8px] font-bold text-red-500 uppercase mt-1 animate-pulse">!! Invalid format. Use numeric ID or -100... for channels !!</p>
+                                        )}
+                                        {token.includes(chatId) && chatId.length > 5 && (
+                                            <p className="text-[8px] font-bold text-red-500 uppercase mt-1 animate-bounce">!! WARNING: YOU ARE USING THE BOT ID. USE YOUR USER ID INSTEAD !!</p>
+                                        )}
                                     </div>
 
                                     <button

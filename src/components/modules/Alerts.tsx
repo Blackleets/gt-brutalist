@@ -9,13 +9,24 @@ export function Notifications() {
     const t = translations[language];
 
     useEffect(() => {
-        if (alertsEnabled && Notification.permission === "default") {
-            Notification.requestPermission();
+        // Trigger system notification for NEW alerts only
+        const latestAlert = activeAlerts[0];
+        if (latestAlert && alertsEnabled && Notification.permission === "granted") {
+            // Check if we already notified for THIS specific alert ID in this session
+            const notifiedKey = `notified_${latestAlert.id}`;
+            if (!sessionStorage.getItem(notifiedKey)) {
+                new Notification(`VYTRONIX ALPHA: ${latestAlert.tokenSymbol}`, {
+                    body: latestAlert.message,
+                    icon: "/favicon.ico", // Or a specific alpha icon
+                    tag: latestAlert.id
+                });
+                sessionStorage.setItem(notifiedKey, "true");
+            }
         }
-    }, [alertsEnabled]);
+    }, [activeAlerts, alertsEnabled]);
 
     return (
-        <div className="fixed top-24 right-6 z-[100] flex flex-col gap-4 w-full max-w-[320px] pointer-events-none">
+        <div className="fixed top-4 md:top-24 right-4 md:right-6 z-[100] flex flex-col gap-4 w-full max-w-[calc(100%-2rem)] md:max-w-[320px] pointer-events-none">
             <AnimatePresence>
                 {activeAlerts.map((alert) => (
                     <motion.div
@@ -25,17 +36,17 @@ export function Notifications() {
                         exit={{ x: 350, opacity: 0 }}
                         className="pointer-events-auto"
                     >
-                        <div className="bg-black border-4 border-[#00ff41] text-[#00ff41] p-4 relative shadow-[8px 8px 0 rgba(0,0,0,1)]">
-                            <div className="flex justify-between items-start mb-2">
+                        <div className="bg-black border-4 border-[#00ff41] text-[#00ff41] p-3 md:p-4 relative shadow-[8px_8px_0_rgba(0,0,0,1)]">
+                            <div className="flex justify-between items-start mb-1 md:mb-2">
                                 <div className="flex items-center gap-2">
-                                    <Bell className="w-4 h-4 animate-pulse" />
-                                    <span className="font-black uppercase text-xs tracking-widest">
+                                    <Bell className="w-3 h-3 md:w-4 md:h-4 animate-pulse" />
+                                    <span className="font-black uppercase text-[9px] md:text-xs tracking-widest truncate max-w-[180px]">
                                         {alert.tokenSymbol} {t.alerts_title}
                                     </span>
                                 </div>
                                 <button
                                     onClick={() => removeAlert(alert.id)}
-                                    className="p-1 hover:bg-white hover:text-black transition-none"
+                                    className="p-1 hover:bg-white hover:text-black transition-none shrink-0"
                                     title={t.alerts_dismiss}
                                     aria-label={t.alerts_dismiss}
                                 >
@@ -43,13 +54,13 @@ export function Notifications() {
                                 </button>
                             </div>
 
-                            <div className="text-sm font-bold uppercase leading-tight pr-4">
+                            <div className="text-xs md:text-sm font-bold uppercase leading-tight pr-4">
                                 {alert.message}
                             </div>
 
-                            <div className="mt-4 flex justify-between items-end text-[10px] font-black opacity-50 uppercase tracking-widest">
+                            <div className="mt-2 md:mt-4 flex justify-between items-end text-[8px] md:text-[10px] font-black opacity-50 uppercase tracking-widest">
                                 <span>{t.alerts_type}: {alert.type.replace('_', ' ')}</span>
-                                <span>{new Date(alert.timestamp).toLocaleTimeString([], { hour12: false })}</span>
+                                <span>{new Date(alert.timestamp).toLocaleTimeString([], { hour12: false, hour: '2-digit', minute: '2-digit' })}</span>
                             </div>
 
                             {/* SCANLINE EFFECT */}

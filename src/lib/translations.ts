@@ -58,6 +58,9 @@ export const translations = {
         nav_cc: "COMMAND_CENTER",
         nav_admin: "ADMIN",
         nav_arb: "ARBITRAGE",
+        nav_social: "SOCIAL_PULSE",
+        social_sentiment_title: "SOCIAL SENTIMENT ANALYSIS",
+        social_chat_title: "PREMIUM PULSE CHAT",
         connect_wallet: "CONNECT_UPLINK",
         connected: "CONNECTED",
         wallet_address: "Wallet_Address",
@@ -90,6 +93,15 @@ export const translations = {
         wallet_failure: "SYSTEM_CRITICAL_FAILURE",
         wallet_scan: "START_SCANNING",
         wallet_desc: "Establish a high-fidelity matrix sync with your wallet.",
+        wallet_identity: "AGENT_IDENTITY",
+        wallet_rank: "RANK",
+        wallet_level: "LVL",
+        wallet_uid: "UPLINK_ID",
+
+        // Landing / Hero
+        landing_title: "AEGIS AI — Autonomous Crypto Intelligence",
+        landing_subtitle: "Analyze tokens, detect market signals and discover opportunities in real time.",
+        landing_cta: "Launch Agent",
 
         // Markets
         market_intel: "MARKET_INTELLIGENCE",
@@ -266,6 +278,8 @@ export const translations = {
         arb_chains: "CHAINS SCANNED",
         arb_exchanges: "EXCHANGES INDEXED",
         arb_precision: "ALPHA PRECISION",
+        arb_success_history: "RECENTLY SNIPED [SUCCESS]",
+        arb_no_success: "No successful snipes recorded in this session.",
 
         // AI Bot Advanced
         bot_price_reply: "CONSULTING ORACLE_V3... SOL: $148.24 | BTC: $64,210. Sentiment: BULLISH.",
@@ -344,6 +358,9 @@ export const translations = {
         port_live_sync_on: "LIVE_SYNC: ON",
         port_live_indicator: "[LIVE]",
         port_hash_prefix: "HASH:",
+        port_pnl_chart: "PnL PERFORMANCE ATTRIBUTION",
+        port_net_profit: "Net Profit",
+        port_roi: "ROI",
 
 
         // Wallet Modal
@@ -400,6 +417,9 @@ export const translations = {
         admin_discord_relay: "Discord_Relay",
         admin_custom_link: "Custom_Link",
         admin_session_active: "Admin session active. Changes take effect across global listeners instantly. Security protocols strictly enforced.",
+        admin_tg_err_bot_to_bot: "ERROR: Chat ID represents a BOT. Bots cannot message other bots. Use your personal User ID.",
+        admin_tg_err_blocked: "ERROR: Bot blocked by user. Please /start the bot in Telegram first.",
+        admin_tg_get_id_help: "Get my ID",
 
         // Aegis Agent
         aegis_title: "AUTOMATED STRATEGY ENGINE",
@@ -557,6 +577,9 @@ export const translations = {
         nav_cc: "CENTRO_MANDO",
         nav_admin: "ADMIN",
         nav_arb: "ARBITRAJE",
+        nav_social: "PULSO_SOCIAL",
+        social_sentiment_title: "ANÁLISIS DE SENTIMIENTO SOCIAL",
+        social_chat_title: "CHAT PULSE PREMIUM",
         connect_wallet: "CONECTAR_UPLINK",
         connected: "CONECTADO",
         buy_vytronix: "COMPRAR $VYTRONIX",
@@ -746,6 +769,8 @@ export const translations = {
         arb_chains: "CADENAS ESCANEADAS",
         arb_exchanges: "EXCHANGES INDEXADOS",
         arb_precision: "PRECISIÓN ALPHA",
+        arb_success_history: "EXITOS RECIENTES [SNIPE]",
+        arb_no_success: "No se registraron snipes exitosos en esta sesión.",
 
         // AI Bot Basics
         bot_greeting: "NÚCLEO_VYTRONIX_AI EN LÍNEA. Sistema inicializado. Uplink neural establecido. Esperando parámetros de objetivo...",
@@ -830,6 +855,9 @@ export const translations = {
         port_live_sync_on: "SINC_VIVO: ON",
         port_live_indicator: "[VIVO]",
         port_hash_prefix: "HASH:",
+        port_pnl_chart: "ATRIBUCIÓN DE RENDIMIENTO PnL",
+        port_net_profit: "Beneficio Neto",
+        port_roi: "ROI",
         port_view_explorer: "Ver Transacción en Explorador",
         port_close_simulation_title: "Cerrar Simulación",
 
@@ -851,6 +879,15 @@ export const translations = {
         wallet_system_core: "Núcleo_Sistema_v5.0",
         wallet_total_nodes: "TOTAL",
         wallet_desc_metamask: "Nodo Secundario EVM",
+        wallet_identity: "IDENTIDAD_AGENTE",
+        wallet_rank: "RANGO",
+        wallet_level: "NVL",
+        wallet_uid: "ID_UPLINK",
+
+        // Landing / Hero
+        landing_title: "AEGIS AI — Inteligencia Cripto Autónoma",
+        landing_subtitle: "Analiza tokens, detecta señales de mercado y descubre oportunidades en tiempo real.",
+        landing_cta: "Iniciar Agente",
         wallet_desc_phantom: "Matriz Primaria Solana",
         wallet_desc_solflare: "Puente Sol Alta Velocidad",
         wallet_desc_binance: "Relé de Red BSC",
@@ -999,6 +1036,9 @@ export const translations = {
         arb_revoke: "REVOCAR",
         arb_flash_execute: "EJECUTAR_FLASH",
         arb_ago: "hace",
+        admin_tg_err_bot_to_bot: "ERROR: El ID de Chat representa a un BOT. Los bots no pueden mensajear a otros bots. Use su ID de Usuario personal.",
+        admin_tg_err_blocked: "ERROR: El bot fue bloqueado por el usuario. Por favor, inicie (/start) el bot en Telegram primero.",
+        admin_tg_get_id_help: "Obtener mi ID",
         apihub_terminal_access: "ACCESO_TERMINAL",
     },
     zh: {
@@ -1058,6 +1098,9 @@ export const translations = {
         nav_cc: "控制中心",
         nav_admin: "管理员",
         nav_arb: "套利监控",
+        nav_social: "社交脉搏",
+        social_sentiment_title: "社交情绪分析",
+        social_chat_title: "高级脉冲聊天",
         connect_wallet: "连接终端",
         connected: "已连接",
         buy_vytronix: "购买 $VYTRONIX",
@@ -1085,6 +1128,15 @@ export const translations = {
         wallet_failure: "系统关键故障",
         wallet_scan: "开始扫描",
         wallet_desc: "与您的钱包建立高保真矩阵同步。",
+        wallet_identity: "特工身份",
+        wallet_rank: "等级",
+        wallet_level: "级别",
+        wallet_uid: "上行链路ID",
+
+        // Landing / Hero
+        landing_title: "AEGIS AI — 自主加密智能",
+        landing_subtitle: "实时分析代币、检测市场信号并发现机遇。",
+        landing_cta: "启动代理",
 
         // Markets
         market_intel: "市场情报",
@@ -1253,6 +1305,8 @@ export const translations = {
         arb_chains: "已扫描链数",
         arb_exchanges: "已索引交易所",
         arb_precision: "Alpha 精度",
+        arb_success_history: "狙击成功记录 [高盈利]",
+        arb_no_success: "当前会话内暂无成功狙击记录。",
         arb_terminal_title: "套利终端",
         arb_verified_data: "已验证 L2 数据",
         arb_atomic_settlement: "原子级结算",
@@ -1378,6 +1432,9 @@ export const translations = {
         port_live_sync_on: "实时同步: 开启",
         port_live_indicator: "[实时]",
         port_hash_prefix: "哈希:",
+        port_pnl_chart: "PnL 表现归因",
+        port_net_profit: "净亏盈",
+        port_roi: "ROI",
         port_view_explorer: "在浏览器中查看交易",
         port_close_simulation_title: "关闭模拟",
 
@@ -1497,6 +1554,9 @@ export const translations = {
         apihub_executing: "正在执行...",
         apihub_execute_req: "执行请求",
         apihub_terminal_output: "终端输出",
+        admin_tg_err_bot_to_bot: "错误：聊天 ID 代表一个机器人。机器人不能给其他机器人发消息。请使用您的个人用户 ID。",
+        admin_tg_err_blocked: "错误：机器人被用户拦截。请先在 Telegram 中启动 (/start) 机器人。",
+        admin_tg_get_id_help: "获取我的 ID",
         apihub_awaiting: "等待执行...",
 
         apihub_terminal_access: "TERMINAL_ACCESS",

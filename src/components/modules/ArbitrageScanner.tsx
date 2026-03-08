@@ -8,7 +8,7 @@ import { getTokenLogo, NATIVE_LOGOS } from "@/lib/tokenLogos";
 // Removed generateRandomOpp fake generation. Now reading real data directly from GlobalEngine via store.
 
 export function ArbitrageScanner() {
-    const { networkMode, wallet, executeSwap, addAlert, globalRankings, addSystemLog, sendTelegramMessage, adminConfig, arbitrageOpportunities, addExecutedArb, language } = useAppStore();
+    const { networkMode, wallet, executeSwap, addAlert, globalRankings, addSystemLog, sendTelegramMessage, adminConfig, arbitrageOpportunities, executedArbs, addExecutedArb, language } = useAppStore();
     const tr = translations[language];
     const [opportunities, setOpportunities] = useState<typeof arbitrageOpportunities>([]);
     const [executingId, setExecutingId] = useState<string | null>(null);
@@ -85,10 +85,10 @@ export function ArbitrageScanner() {
                                 exit={{ opacity: 0, scale: 0.9, x: 20 }}
                                 whileHover={{ scale: 1.01, borderColor: "#00ff41" }}
                                 transition={{ type: "spring", stiffness: 400, damping: 30 }}
-                                className="bg-[#111] border-4 border-black p-4 md:p-8 grid grid-cols-1 lg:grid-cols-4 gap-6 items-center transition-all relative overflow-hidden group shadow-[12px_12px_0_rgba(0,0,0,1)]"
+                                className="bg-[#111] border-4 border-black p-4 md:p-8 grid grid-cols-1 lg:grid-cols-4 gap-4 md:gap-6 items-center transition-all relative overflow-hidden group shadow-[8px_8px_0_rgba(0,0,0,1)] md:shadow-[12px_12px_0_rgba(0,0,0,1)]"
                             >
                                 {/* EXPIRE BAR (Top) - Tied to state for stability */}
-                                <div className="absolute top-0 left-0 w-full h-1.5 bg-zinc-800 z-0">
+                                <div className="absolute top-0 left-0 w-full h-1 bg-zinc-800 z-0">
                                     <motion.div
                                         animate={{ width: `${(opp.timeLeft / 30) * 100}%` }}
                                         transition={{ duration: 1, ease: "linear" }}
@@ -97,8 +97,8 @@ export function ArbitrageScanner() {
                                 </div>
 
                                 {/* TOKEN INFO - Redesigned to avoid overlap */}
-                                <div className="flex flex-col items-start gap-4 relative z-10">
-                                    <div className="w-16 h-16 border-4 border-black bg-black flex items-center justify-center overflow-hidden shrink-0 shadow-[4px_4px_0_rgba(0,0,0,1)] group-hover:border-[#00ff41] transition-colors">
+                                <div className="flex flex-row lg:flex-col items-center lg:items-start gap-3 md:gap-4 relative z-10">
+                                    <div className="w-10 h-10 md:w-16 md:h-16 border-2 md:border-4 border-black bg-black flex items-center justify-center overflow-hidden shrink-0 shadow-[2px_2px_0_rgba(0,0,0,1)] md:shadow-[4px_4px_0_rgba(0,0,0,1)] group-hover:border-[#00ff41] transition-colors">
                                         <img
                                             src={getTokenLogo(opp.token)}
                                             alt={opp.token}
@@ -107,18 +107,15 @@ export function ArbitrageScanner() {
                                         />
                                     </div>
                                     <div className="flex-1 min-w-0">
-                                        <div className="text-2xl font-black uppercase text-white leading-none mb-2 truncate">
+                                        <div className="text-lg md:text-2xl font-black uppercase text-white leading-none mb-1 md:mb-2 truncate">
                                             {opp.token}
                                         </div>
-                                        <div className="flex flex-wrap items-center gap-2">
-                                            <div className="text-[9px] font-black bg-[#00ff41] text-black px-2 py-0.5 uppercase">
+                                        <div className="flex flex-wrap items-center gap-1.5 md:gap-2">
+                                            <div className="text-[7px] md:text-[9px] font-black bg-[#00ff41] text-black px-1.5 md:px-2 py-0.5 uppercase">
                                                 {opp.buyChain === opp.sellChain ? "INTRA" : "CROSS"}
                                             </div>
-                                            <div className="text-[9px] font-black border border-white/20 text-white/50 px-2 py-0.5 uppercase">
+                                            <div className="text-[7px] md:text-[9px] font-black border border-white/20 text-white/50 px-1.5 md:px-2 py-0.5 uppercase">
                                                 {opp.timeLeft}S
-                                            </div>
-                                            <div className="text-[9px] font-black bg-blue-500 text-white px-2 py-0.5 uppercase">
-                                                CONF: {opp.confidence}
                                             </div>
                                         </div>
                                     </div>
@@ -203,9 +200,9 @@ export function ArbitrageScanner() {
                                             }
                                         }}
                                         disabled={executingId === opp.id || !wallet.connected}
-                                        className="bg-[#00ff41] text-black font-black uppercase px-6 py-4 hover:bg-white transition-all text-sm flex items-center justify-center gap-3 border-4 border-black shadow-[4px_4px_0_rgba(255,255,255,0.1)] hover:shadow-none active:translate-x-1 active:translate-y-1 shrink-0 disabled:opacity-50"
+                                        className="w-full lg:w-auto bg-[#00ff41] text-black font-black uppercase px-6 py-3 md:py-4 hover:bg-white transition-all text-xs md:text-sm flex items-center justify-center gap-3 border-4 border-black shadow-[4px_4px_0_rgba(255,255,255,0.1)] hover:shadow-none active:translate-x-1 active:translate-y-1 shrink-0 disabled:opacity-50"
                                     >
-                                        <Zap className={`w-5 h-5 ${executingId === opp.id ? "animate-spin" : ""}`} />
+                                        <Zap className={`w-4 h-4 md:w-5 md:h-5 ${executingId === opp.id ? "animate-spin" : ""}`} />
                                         {executingId === opp.id ? tr.arb_sniping : wallet.connected ? tr.arb_execute : tr.arb_auth_req}
                                     </button>
                                 </div>
@@ -224,11 +221,51 @@ export function ArbitrageScanner() {
                             </motion.div>
                         )}
                     </AnimatePresence>
-                </div>
+                </div >
 
                 {/* TELEMETRY WIDGET */}
                 <div className="mt-12 flex flex-col md:flex-row justify-between items-center gap-6 border-t-4 border-[#00ff41]/20 pt-8">
-                    <div className="flex gap-8 items-center bg-[#111] border-2 border-black p-4 shadow-[4px_4px_0_rgba(0,0,0,1)]">
+                    {/* Realized Profit History Log */}
+                    <div className="flex-1 w-full md:w-auto">
+                        <div className="flex items-center gap-2 mb-4">
+                            <Zap className="w-4 h-4 text-[#00ff41]" />
+                            <h3 className="text-xs font-black uppercase tracking-widest text-[#00ff41]">
+                                {tr.arb_success_history} [{executedArbs.length}]
+                            </h3>
+                        </div>
+
+                        <div className="space-y-2 max-h-[160px] overflow-y-auto pr-2 custom-scrollbar">
+                            {executedArbs.length === 0 ? (
+                                <div className="p-4 border-2 border-dashed border-zinc-800 text-[10px] font-black uppercase text-zinc-500 text-center">
+                                    {tr.arb_no_success}
+                                </div>
+                            ) : (
+                                [...executedArbs].reverse().slice(0, 5).map((arb) => (
+                                    <div key={arb.id} className="bg-zinc-950 border-2 border-zinc-800 p-3 flex items-center justify-between group hover:border-[#00ff41] transition-colors shadow-[2px_2px_0_rgba(0,0,0,1)]">
+                                        <div className="flex items-center gap-3">
+                                            <div className="w-8 h-8 bg-[#00ff41] text-black flex items-center justify-center font-black text-xs italic">
+                                                SUCCESS
+                                            </div>
+                                            <div>
+                                                <div className="text-[10px] font-black uppercase text-white">{arb.token} SNIPE</div>
+                                                <div className="text-[9px] font-black text-zinc-500 uppercase">{arb.dexFrom} → {arb.dexTo}</div>
+                                            </div>
+                                        </div>
+                                        <div className="text-right">
+                                            <div className="text-[#00ff41] font-black text-sm italic leading-none">
+                                                +{arb.spread.toFixed(2)}%
+                                            </div>
+                                            <div className="text-[9px] font-bold text-zinc-600 mt-1">
+                                                ${arb.profitUsd.toFixed(2)} NET
+                                            </div>
+                                        </div>
+                                    </div>
+                                ))
+                            )}
+                        </div>
+                    </div>
+
+                    <div className="flex gap-8 items-center bg-[#111] border-2 border-black p-4 shadow-[4px_4px_0_rgba(0,0,0,1)] shrink-0">
                         <div className="text-center">
                             <div className="text-[10px] font-black text-gray-500 uppercase mb-1">{tr.arb_chains}</div>
                             <div className="text-2xl font-black text-white italic">02</div>
@@ -298,8 +335,8 @@ export function ArbitrageScanner() {
                             </div>
                         </div>
                     </div>
-                </div>
-            </div>
-        </section>
+                </div >
+            </div >
+        </section >
     );
 }

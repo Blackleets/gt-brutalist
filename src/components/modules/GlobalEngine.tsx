@@ -3,6 +3,7 @@ import { useAppStore, RealArbitrageOpportunity } from "@/lib/store";
 import { scanAethrixPools, AethrixPool, fetchSpotlightTokens } from "@/lib/aethrix";
 import { alphaEngine } from "@/modules/alpha/AlphaEngine";
 import { useAlphaGuard } from "@/modules/alpha/AlphaGuard";
+import { kolTracker } from "@/modules/kol/KOLTracker";
 
 export function GlobalEngine() {
     const {
@@ -15,7 +16,10 @@ export function GlobalEngine() {
         addFeedEvent,
         setArbitrageOpportunities,
         sendTelegramMessage,
-        addExecutedArb
+        addExecutedArb,
+        addKOLSignal,
+        globalRankings,
+        executionParams
     } = useAppStore();
 
     const { isAuthorized } = useAlphaGuard();
@@ -73,19 +77,32 @@ export function GlobalEngine() {
                             const rawSpread = ((maxPool.priceUsd - minPool.priceUsd) / minPool.priceUsd) * 100;
 
                             // Precision Math: Factoring in AMM Trade Fees + Network Gas Overhead
-                            // Standard AMM swap fee is usually ~0.3% per swap. Arb requires 2 swaps = 0.6% total overhead.
-                            // Plus slippage & base gas overhead buffer (~0.1%). Total hurdle rate = ~0.7%
-                            const HURDLE_RATE = 0.70;
-                            const netProfitPercentage = rawSpread - HURDLE_RATE;
+                            // AMM swap fee is usually ~0.3% per swap. Arb requires 2 swaps = 0.6% total overhead.
+                            // We now FACTOR IN the actual Slippage requested by the operator
+                            const userSlippage = parseFloat(executionParams.slippage) || 0.5;
+                            const AMM_FEE_PERCENT = 0.60 + userSlippage;
 
-                            // We only alert if there is a TRUE positive Net Profit after all fees
-                            if (netProfitPercentage > 0.1) {
+                            // Bribe / Priority Fees (Dynamic adjustment based on operator preference)
+                            const bribeFactor = executionParams.bribePriority === "ULTRA" ? 5 : executionParams.bribePriority === "HIGH" ? 2 : 1;
+                            const GAS_ESTIMATE_SOL = 0.01 * bribeFactor; // 2 swaps + priority factor
+                            const GAS_ESTIMATE_BSC = 0.40 * bribeFactor; // 2 swaps on BSC
+
+                            const gasCostUsd = minPool.chain === "solana" ? GAS_ESTIMATE_SOL : GAS_ESTIMATE_BSC;
+
+                            // We calculate safe position sizing (max 2% of smallest pool to avoid price impact)
+                            const maxSafeTradeUsd = Math.min(minPool.liquidityUsd, maxPool.liquidityUsd) * 0.02;
+
+                            // Net Profit Calculation: (Raw Spread % - AMM Fees %) * Trade Size - Fixed Gas
+                            const netProfitUsdNoGas = maxSafeTradeUsd * ((rawSpread - AMM_FEE_PERCENT) / 100);
+                            const estimatedProfitUtic = netProfitUsdNoGas - gasCostUsd;
+
+                            // Re-calculate the True Net ROI percentage for the UI
+                            const netProfitPercentage = (estimatedProfitUtic / maxSafeTradeUsd) * 100;
+
+                            // We only alert if there is a TRUE positive Net Profit after all fees/gas
+                            if (netProfitPercentage > 0.05 && estimatedProfitUtic > 1) {
                                 // STABLE ID: Based on token, buy dex, and sell dex to prevent UI duplication
                                 const id = `arb-${tokenAddr.substring(0, 8)}-${minPool.dex}-${maxPool.dex}`;
-
-                                // Calculate safe position sizing (max 2% of the smallest liquidity pool to avoid moving the market)
-                                const maxSafeTradeUsd = Math.min(minPool.liquidityUsd, maxPool.liquidityUsd) * 0.02;
-                                const estimatedProfitUtic = maxSafeTradeUsd * (netProfitPercentage / 100);
 
                                 // Dynamic Confidence
                                 let confidence: "HIGH" | "MEDIUM" | "LOW" = "LOW";
@@ -147,13 +164,11 @@ export function GlobalEngine() {
                 const finalPools = Array.from(uniqueByToken.values());
 
                 // ALPHA ENGINE Integration: Always process pools to get baseline scores/info
-                // The actual display of these scores/reasons is gated in the UI Components (AegisAgent, Mercados)
                 finalPools.forEach(pool => {
                     alphaEngine.processPool(pool);
                 });
 
                 finalPools.sort((a, b) => b.score - a.score);
-
                 const topRanked = finalPools.slice(0, 100);
 
                 if (topRanked.length > 0) {
@@ -178,20 +193,16 @@ export function GlobalEngine() {
                         autoRefresh: true
                     });
 
-                    // Generate Real-Time Feed Events (Not just alerts)
+                    // Generate Real-Time Feed Events
                     finalPools.slice(0, 15).forEach((pool, idx) => {
                         const prev = prevPoolsRef.current[pool.id];
-
-                        // If it's a new top performer or has significant activity change
                         const totalTx = pool.txns5m.buys + pool.txns5m.sells;
                         const prevTotal = prev ? (prev.txns5m.buys + prev.txns5m.sells) : 0;
 
                         if (totalTx > prevTotal || !prev) {
                             const newTxCount = totalTx - prevTotal;
-                            // Inject simulated "Global order" signals based on real delta or top rank
                             if (newTxCount > 0 || Math.random() > 0.7) {
                                 const isBuy = (pool.txns5m.buys / Math.max(1, totalTx)) > Math.random();
-
                                 addFeedEvent({
                                     id: `pulse-${pool.id}-${Date.now()}-${idx}`,
                                     chain: pool.chain.toUpperCase(),
@@ -204,7 +215,6 @@ export function GlobalEngine() {
                             }
                         }
 
-                        // Also generate standard alerts
                         if (alertsEnabled && prev) {
                             if (pool.score - prev.score >= 12) {
                                 addAlert({
@@ -226,20 +236,76 @@ export function GlobalEngine() {
                 setAethrixStats({ apiMode: "Error" });
             }
 
-            // Loop every 20s for faster "real-time" feel without killing the API
             if (isMounted) {
                 timeoutId = setTimeout(executeScan, 20000);
             }
         };
 
-        // Initial immediate scan
         executeScan();
 
         return () => {
             isMounted = false;
             clearTimeout(timeoutId);
         };
-    }, [selectedChain, alertsEnabled, networkMode, addAlert, setAethrixStats, setGlobalRankings, addFeedEvent, setArbitrageOpportunities, sendTelegramMessage, addExecutedArb, isAuthorized]);
+    }, [selectedChain, alertsEnabled, networkMode, addAlert, setAethrixStats, setGlobalRankings, addFeedEvent, setArbitrageOpportunities, sendTelegramMessage, addExecutedArb, isAuthorized, executionParams]);
 
-    return null; // Invisible background worker
+    // KOL TRACKER LOOP (60s Interval)
+    useEffect(() => {
+        let isMounted = true;
+        let kolTimeoutId: NodeJS.Timeout;
+
+        const executeKOLScan = async () => {
+            if (globalRankings.length === 0) {
+                if (isMounted) kolTimeoutId = setTimeout(executeKOLScan, 5000);
+                return;
+            }
+
+            try {
+                const signals = await kolTracker.scan(globalRankings);
+
+                if (!isMounted) return;
+
+                for (const signal of signals) {
+                    addKOLSignal(signal);
+
+                    if (sendTelegramMessage) {
+                        const tgMsg = `${signal.isConfirmation ? "🚨 *KOL CONFIRMATION*" : "📡 *KOL SIGNAL*"}\n\n` +
+                            `Token: *$${signal.tokenSymbol}*\n` +
+                            `Mentioned by: ${signal.kols.map(k => `@${k}`).join(", ")}\n` +
+                            `Followers: *${signal.followerCount}*\n\n` +
+                            `Impact Score: *${signal.impactScore}*\n` +
+                            `Mentions Detected: *${signal.mentions}*\n\n` +
+                            `Source: *KOL Tracker*`;
+
+                        sendTelegramMessage(tgMsg);
+                    }
+
+                    addFeedEvent({
+                        id: `pulse-kol-${signal.id}`,
+                        chain: "GLOBAL",
+                        type: "ORDER_EXECUTION",
+                        metricValue: `KOL IMPACT: ${signal.impactScore}`,
+                        tokenSymbol: signal.tokenSymbol,
+                        time: Date.now(),
+                        isPositive: true
+                    });
+                }
+            } catch (err) {
+                console.error("KOL Engine failure:", err);
+            }
+
+            if (isMounted) {
+                kolTimeoutId = setTimeout(executeKOLScan, 30000); // Higher frequency for Social Intelligence
+            }
+        };
+
+        executeKOLScan();
+
+        return () => {
+            isMounted = false;
+            clearTimeout(kolTimeoutId);
+        };
+    }, [globalRankings, addKOLSignal, sendTelegramMessage, addFeedEvent]);
+
+    return null;
 }
