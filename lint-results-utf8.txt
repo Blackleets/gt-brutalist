@@ -1,0 +1,116 @@
+﻿
+> gt-brutalist@0.0.0 lint
+> eslint .
+
+
+C:\Users\Usuario\.gemini\antigravity\scratch\gt-brutalist\src\components\modules\Mercados.tsx
+  107:8  warning  React Hook useEffect has missing dependencies: 'activeRpcPerChain', 'evmBalances', 'wallet.address', and 'wallet.providerType'. Either include them or remove the dependency array  react-hooks/exhaustive-deps
+
+C:\Users\Usuario\.gemini\antigravity\scratch\gt-brutalist\src\components\modules\NetworkTerminal.tsx
+  64:8  warning  React Hook useEffect has a missing dependency: 'refreshGlobal'. Either include it or remove the dependency array  react-hooks/exhaustive-deps
+
+C:\Users\Usuario\.gemini\antigravity\scratch\gt-brutalist\src\components\modules\Portfolio.tsx
+  11:13  error  'liveData' is never reassigned. Use 'const' instead  prefer-const
+
+C:\Users\Usuario\.gemini\antigravity\scratch\gt-brutalist\src\components\modules\SwapSimulator.tsx
+   42:8   warning  React Hook useMemo has a missing dependency: 'nativePrices'. Either include it or remove the dependency array                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                       react-hooks/exhaustive-deps
+   58:13  error    Error: Calling setState synchronously within an effect can trigger cascading renders
+
+Effects are intended to synchronize state between React and external systems such as manually updating the DOM, state management libraries, or other platform APIs. In general, the body of an effect should do one or both of the following:
+* Update external systems with the latest state from React.
+* Subscribe for updates from some external system, calling setState in a callback function when external state changes.
+
+Calling setState synchronously within an effect body causes cascading renders that can hurt performance, and is not recommended. (https://react.dev/learn/you-might-not-need-an-effect).
+
+C:\Users\Usuario\.gemini\antigravity\scratch\gt-brutalist\src\components\modules\SwapSimulator.tsx:58:13
+  56 |             const usdcToken = availableTokens.find(t => t.symbol === "USDC" || t.symbol === "USDT");
+  57 |             const firstNonStable = availableTokens.find(t => !["USDC", "USDT"].includes(t.symbol));
+> 58 |             setTokenFrom(usdcToken || availableTokens[0]);
+     |             ^^^^^^^^^^^^ Avoid calling setState() directly within an effect
+  59 |             setTokenTo(firstNonStable || availableTokens[1]);
+  60 |         }
+  61 |     }, [availableTokens]);                                                                                     react-hooks/set-state-in-effect
+   61:8   warning  React Hook useEffect has a missing dependency: 'tokenFrom'. Either include it or remove the dependency array                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                        react-hooks/exhaustive-deps
+  240:38  error    Error: Cannot create components during render
+
+Components created during render will reset their state each time they are created. Declare components outside of render.
+
+C:\Users\Usuario\.gemini\antigravity\scratch\gt-brutalist\src\components\modules\SwapSimulator.tsx:240:38
+  238 |                                         <ChevronDown className="w-4 h-4" />
+  239 |                                     </button>
+> 240 |                                     <TokenPicker
+      |                                      ^^^^^^^^^^^ This component is created during render
+  241 |                                         show={showFromPicker}
+  242 |                                         onClose={() => setShowFromPicker(false)}
+  243 |                                         onSelect={setTokenFrom}
+
+C:\Users\Usuario\.gemini\antigravity\scratch\gt-brutalist\src\components\modules\SwapSimulator.tsx:162:25
+  160 |     };
+  161 |
+> 162 |     const TokenPicker = ({
+      |                         ^^
+> 163 |         show,
+      | ^^^^^^^^^^^^^
+> 164 |         onClose,
+      ÔÇª
+      | ^^^^^^^^^^^^^
+> 200 |         </AnimatePresence>
+      | ^^^^^^^^^^^^^
+> 201 |     );
+      | ^^^^^^ The component is created during render here
+  202 |
+  203 |     return (
+  204 |         <section className="px-6 md:px-16 py-12 border-b-4 border-black relative z-10 bg-white">  react-hooks/static-components
+  283:38  error    Error: Cannot create components during render
+
+Components created during render will reset their state each time they are created. Declare components outside of render.
+
+C:\Users\Usuario\.gemini\antigravity\scratch\gt-brutalist\src\components\modules\SwapSimulator.tsx:283:38
+  281 |                                         <ChevronDown className="w-4 h-4" />
+  282 |                                     </button>
+> 283 |                                     <TokenPicker
+      |                                      ^^^^^^^^^^^ This component is created during render
+  284 |                                         show={showToPicker}
+  285 |                                         onClose={() => setShowToPicker(false)}
+  286 |                                         onSelect={setTokenTo}
+
+C:\Users\Usuario\.gemini\antigravity\scratch\gt-brutalist\src\components\modules\SwapSimulator.tsx:162:25
+  160 |     };
+  161 |
+> 162 |     const TokenPicker = ({
+      |                         ^^
+> 163 |         show,
+      | ^^^^^^^^^^^^^
+> 164 |         onClose,
+      ÔÇª
+      | ^^^^^^^^^^^^^
+> 200 |         </AnimatePresence>
+      | ^^^^^^^^^^^^^
+> 201 |     );
+      | ^^^^^^ The component is created during render here
+  202 |
+  203 |     return (
+  204 |         <section className="px-6 md:px-16 py-12 border-b-4 border-black relative z-10 bg-white">        react-hooks/static-components
+
+C:\Users\Usuario\.gemini\antigravity\scratch\gt-brutalist\src\lib\aethrix.ts
+  108:9   warning  Unused eslint-disable directive (no problems were reported from '@typescript-eslint/no-explicit-any')
+  118:22  error    Unexpected any. Specify a different type                                                               @typescript-eslint/no-explicit-any
+  212:9   warning  Unused eslint-disable directive (no problems were reported from '@typescript-eslint/no-explicit-any')
+  220:22  error    Unexpected any. Specify a different type                                                               @typescript-eslint/no-explicit-any
+
+C:\Users\Usuario\.gemini\antigravity\scratch\gt-brutalist\src\lib\chains.ts
+  135:101  error  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+
+C:\Users\Usuario\.gemini\antigravity\scratch\gt-brutalist\src\lib\store.tsx
+    7:18  error    Unexpected any. Specify a different type                                                                                      @typescript-eslint/no-explicit-any
+    8:20  error    Unexpected any. Specify a different type                                                                                      @typescript-eslint/no-explicit-any
+  193:26  error    'e' is defined but never used                                                                                                 @typescript-eslint/no-unused-vars
+  370:79  error    Unexpected any. Specify a different type                                                                                      @typescript-eslint/no-explicit-any
+  396:8   warning  React Hook useEffect has a missing dependency: 'refreshSmartMoneyActivity'. Either include it or remove the dependency array  react-hooks/exhaustive-deps
+  448:79  error    Unexpected any. Specify a different type                                                                                      @typescript-eslint/no-explicit-any
+  471:8   warning  React Hook useEffect has a missing dependency: 'refreshWalletTokens'. Either include it or remove the dependency array        react-hooks/exhaustive-deps
+  501:8   warning  React Hook useEffect has a missing dependency: 'connectWallet'. Either include it or remove the dependency array              react-hooks/exhaustive-deps
+
+Ô£û 21 problems (12 errors, 9 warnings)
+  1 error and 2 warnings potentially fixable with the `--fix` option.
+

@@ -1,0 +1,135 @@
+@import "tailwindcss/base";
+@import "tailwindcss/components";
+@import "tailwindcss/utilities";
+
+@layer base {
+  :root {
+    --background: 0 0% 100%;
+    --foreground: 0 0% 0%;
+
+    --card: 0 0% 100%;
+    --card-foreground: 0 0% 0%;
+
+    --popover: 0 0% 100%;
+    --popover-foreground: 0 0% 0%;
+
+    --primary: 0 0% 9%;
+    --primary-foreground: 0 0% 98%;
+
+    --secondary: 0 0% 96.1%;
+    --secondary-foreground: 0 0% 9%;
+
+    --muted: 0 0% 96.1%;
+    --muted-foreground: 0 0% 45.1%;
+
+    --accent: 0 0% 96.1%;
+    --accent-foreground: 0 0% 9%;
+
+    --destructive: 0 84.2% 60.2%;
+    --destructive-foreground: 0 0% 98%;
+
+    --border: 0 0% 0%;
+    --input: 0 0% 0%;
+    --ring: 0 0% 0%;
+
+    --radius: 0.5rem;
+  }
+}
+
+@layer utilities {
+  .animate-marquee {
+    animation: marquee 30s linear infinite;
+  }
+
+  .animate-spin-slow {
+    animation: spin 4s linear infinite;
+  }
+
+  .grid-pattern-light {
+    background-image: linear-gradient(to right, black 1px, transparent 1px), linear-gradient(to bottom, black 1px, transparent 1px);
+    background-size: 40px 40px;
+  }
+
+  .grid-pattern-green {
+    background-image: linear-gradient(#00ff41 1px, transparent 1px), linear-gradient(90deg, #00ff41 1px, transparent 1px);
+    background-size: 40px 40px;
+  }
+
+  .clip-brutalist {
+    clip-path: polygon(0 0, 100% 0, 98% 100%, 2% 100%);
+  }
+
+  .bg-fear-gradient {
+    background: radial-gradient(circle at 50% 50%, #ff0000 0%, transparent 70%);
+  }
+
+  .bg-greed-gradient {
+    background: radial-gradient(circle at 50% 50%, #00ff41 0%, transparent 70%);
+  }
+
+  .matrix-row {
+    animation: matrix-pulse 2s infinite ease-in-out;
+    animation-delay: var(--delay, 0s);
+  }
+
+  .dot-matrix-green {
+    background-image: radial-gradient(#00ff41 1px, transparent 0);
+    background-size: 40px 40px;
+  }
+}
+
+@keyframes matrix-pulse {
+
+  0%,
+  100% {
+    opacity: 0.2;
+  }
+
+  50% {
+    opacity: 1;
+  }
+}
+
+@keyframes marquee {
+  0% {
+    transform: translateX(0);
+  }
+
+  100% {
+    transform: translateX(-50%);
+  }
+}
+
+@keyframes spin {
+  from {
+    transform: rotate(0deg);
+  }
+
+  to {
+    transform: rotate(360deg);
+  }
+}
+
+/* Base Global Reset */
+html,
+body {
+  overflow-x: hidden;
+  width: 100%;
+}
+
+/* Individual transitions for smooth hover without killing DRAG performance */
+button,
+a,
+.btn-transition {
+  transition: all 150ms ease-out;
+}
+
+input[type="number"]::-webkit-inner-spin-button,
+input[type="number"]::-webkit-outer-spin-button {
+  -webkit-appearance: none;
+  margin: 0;
+}
+
+.text-stroke-1-black {
+  -webkit-text-stroke: 1px black;
+}

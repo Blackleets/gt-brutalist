@@ -1,0 +1,33 @@
+﻿
+> gt-brutalist@0.0.0 lint
+> eslint .
+
+
+C:\Users\Usuario\.gemini\antigravity\scratch\gt-brutalist\src\components\modules\Mercados.tsx
+  107:8  warning  React Hook useEffect has missing dependencies: 'activeRpcPerChain', 'evmBalances', 'wallet.address', and 'wallet.providerType'. Either include them or remove the dependency array  react-hooks/exhaustive-deps
+
+C:\Users\Usuario\.gemini\antigravity\scratch\gt-brutalist\src\components\modules\NetworkTerminal.tsx
+  64:8  warning  React Hook useEffect has a missing dependency: 'refreshGlobal'. Either include it or remove the dependency array  react-hooks/exhaustive-deps
+
+C:\Users\Usuario\.gemini\antigravity\scratch\gt-brutalist\src\lib\aethrix.ts
+  108:9   warning  Unused eslint-disable directive (no problems were reported from '@typescript-eslint/no-explicit-any')
+  118:22  error    Unexpected any. Specify a different type                                                               @typescript-eslint/no-explicit-any
+  212:9   warning  Unused eslint-disable directive (no problems were reported from '@typescript-eslint/no-explicit-any')
+  220:22  error    Unexpected any. Specify a different type                                                               @typescript-eslint/no-explicit-any
+
+C:\Users\Usuario\.gemini\antigravity\scratch\gt-brutalist\src\lib\chains.ts
+  135:101  error  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+
+C:\Users\Usuario\.gemini\antigravity\scratch\gt-brutalist\src\lib\store.tsx
+    7:18  error    Unexpected any. Specify a different type                                                                                      @typescript-eslint/no-explicit-any
+    8:20  error    Unexpected any. Specify a different type                                                                                      @typescript-eslint/no-explicit-any
+  193:26  error    'e' is defined but never used                                                                                                 @typescript-eslint/no-unused-vars
+  370:79  error    Unexpected any. Specify a different type                                                                                      @typescript-eslint/no-explicit-any
+  396:8   warning  React Hook useEffect has a missing dependency: 'refreshSmartMoneyActivity'. Either include it or remove the dependency array  react-hooks/exhaustive-deps
+  448:79  error    Unexpected any. Specify a different type                                                                                      @typescript-eslint/no-explicit-any
+  471:8   warning  React Hook useEffect has a missing dependency: 'refreshWalletTokens'. Either include it or remove the dependency array        react-hooks/exhaustive-deps
+  501:8   warning  React Hook useEffect has a missing dependency: 'connectWallet'. Either include it or remove the dependency array              react-hooks/exhaustive-deps
+
+Ô£û 15 problems (8 errors, 7 warnings)
+  0 errors and 2 warnings potentially fixable with the `--fix` option.
+
