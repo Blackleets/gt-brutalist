@@ -463,8 +463,16 @@ export function AppProvider({ children }: { children: ReactNode }) {
                 let provider = window.ethereum;
                 const providers = window.ethereum?.providers || [];
 
+                interface EthereumProvider extends Record<string, unknown> {
+                    isMetaMask?: boolean;
+                    isOKXWallet?: boolean;
+                    isOkxWallet?: boolean;
+                    isWalletConnect?: boolean;
+                    request: (args: { method: string; params?: unknown[] | unknown }) => Promise<unknown>;
+                }
+
                 if (type === "metamask") {
-                    provider = providers.find((p: any) => p.isMetaMask && !p.isOKXWallet && !p.isOkxWallet) ||
+                    provider = providers.find((p: EthereumProvider) => p.isMetaMask && !p.isOKXWallet && !p.isOkxWallet) ||
                         (window.ethereum?.isMetaMask && !window.ethereum?.isOKXWallet && !window.ethereum?.isOkxWallet ? window.ethereum : undefined);
 
                     if (!provider && (window.ethereum?.isOKXWallet || window.ethereum?.isOkxWallet)) {
@@ -473,11 +481,11 @@ export function AppProvider({ children }: { children: ReactNode }) {
                 }
                 else if (type === "okx") {
                     provider = window.okxwallet ||
-                        providers.find((p: any) => p.isOKXWallet || p.isOkxWallet) ||
+                        providers.find((p: EthereumProvider) => p.isOKXWallet || p.isOkxWallet) ||
                         (window.ethereum?.isOKXWallet || window.ethereum?.isOkxWallet ? window.ethereum : undefined);
                 }
                 else if (type === "walletconnect") {
-                    provider = window.ethereum?.providers?.find((p: any) => p.isWalletConnect) || window.ethereum;
+                    provider = window.ethereum?.providers?.find((p: EthereumProvider) => p.isWalletConnect) || window.ethereum;
                 }
 
                 if (!provider) {
@@ -1168,7 +1176,7 @@ export function AppProvider({ children }: { children: ReactNode }) {
 
         // Fallback or unrecognized provider
         return "0x" + Array.from({ length: 64 }, () => Math.floor(Math.random() * 16).toString(16)).join('');
-    }, [wallet, activeRpcPerChain, executionParams]);
+    }, [wallet, activeRpcPerChain]);
 
     const setGlobalRankingsStable = useCallback((rankings: AethrixPool[]) => {
         setGlobalRankings(rankings);

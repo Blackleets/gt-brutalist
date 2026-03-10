@@ -1,0 +1,474 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>VYTRONIX_TECHNICAL_MANUAL_V2.0</title>
+    <style>
+        @import url('https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@300;400;700;900&family=Space+Mono:ital,wght@0,400;0,700;1,400;1,700&display=swap');
+
+        :root {
+            --black: #000000;
+            --white: #ffffff;
+            --gray: #f4f4f4;
+            --accent: #00ff41;
+            --border-width: 4px;
+        }
+
+        @media print {
+            .no-print {
+                display: none;
+            }
+
+            body {
+                padding: 0;
+                margin: 0;
+                background: white !important;
+            }
+
+            .page-break {
+                page-break-before: always;
+            }
+        }
+
+        body {
+            background-color: var(--gray);
+            color: var(--black);
+            font-family: 'Space Grotesk', sans-serif;
+            line-height: 1.5;
+            padding: 40px;
+            margin: 0;
+        }
+
+        .container {
+            max-width: 850px;
+            margin: 0 auto;
+            background: var(--white);
+            border: var(--border-width) solid var(--black);
+            padding: 50px;
+            box-shadow: 15px 15px 0 var(--black);
+        }
+
+        header {
+            border-bottom: 8px solid var(--black);
+            padding-bottom: 30px;
+            margin-bottom: 50px;
+            position: relative;
+        }
+
+        .header-meta {
+            font-family: 'Space Mono', monospace;
+            font-size: 10px;
+            font-weight: 700;
+            text-transform: uppercase;
+            letter-spacing: 2px;
+            color: #666;
+            margin-bottom: 10px;
+        }
+
+        h1 {
+            font-size: 60px;
+            font-weight: 900;
+            text-transform: uppercase;
+            letter-spacing: -3px;
+            line-height: 0.9;
+            margin: 0;
+            font-style: italic;
+        }
+
+        .status-badge {
+            display: inline-block;
+            background: var(--black);
+            color: var(--accent);
+            padding: 5px 15px;
+            font-family: 'Space Mono', monospace;
+            font-weight: 700;
+            font-size: 12px;
+            margin-top: 15px;
+        }
+
+        section {
+            margin-bottom: 60px;
+        }
+
+        .section-header {
+            display: flex;
+            align-items: center;
+            gap: 20px;
+            border-bottom: var(--border-width) solid var(--black);
+            margin-bottom: 25px;
+            padding-bottom: 10px;
+        }
+
+        .section-number {
+            font-family: 'Space Mono', monospace;
+            font-size: 40px;
+            font-weight: 900;
+            color: var(--black);
+        }
+
+        .section-title {
+            font-size: 28px;
+            font-weight: 900;
+            text-transform: uppercase;
+            letter-spacing: -1px;
+        }
+
+        .module-card {
+            border: 2px solid var(--black);
+            padding: 20px;
+            margin-bottom: 20px;
+            background: var(--gray);
+        }
+
+        .module-card h4 {
+            margin: 0 0 10px 0;
+            font-family: 'Space Mono', monospace;
+            font-size: 14px;
+            text-transform: uppercase;
+            background: var(--black);
+            color: var(--white);
+            display: inline-block;
+            padding: 2px 10px;
+        }
+
+        p {
+            font-size: 16px;
+            font-weight: 400;
+            margin-bottom: 20px;
+        }
+
+        ul {
+            list-style: none;
+            padding: 0;
+        }
+
+        li {
+            padding-left: 25px;
+            position: relative;
+            margin-bottom: 10px;
+            font-weight: 600;
+            font-size: 14px;
+        }
+
+        li::before {
+            content: ">>";
+            position: absolute;
+            left: 0;
+            font-family: 'Space Mono', monospace;
+            font-weight: 700;
+            color: var(--black);
+        }
+
+        .tech-block {
+            font-family: 'Space Mono', monospace;
+            background: #eee;
+            padding: 15px;
+            border-left: 10px solid var(--black);
+            font-size: 12px;
+            margin: 20px 0;
+        }
+
+        footer {
+            margin-top: 100px;
+            border-top: 2px solid var(--black);
+            padding-top: 20px;
+            font-family: 'Space Mono', monospace;
+            font-size: 10px;
+            text-align: center;
+            color: #999;
+        }
+
+        .lang-switch {
+            position: fixed;
+            top: 20px;
+            right: 20px;
+            display: flex;
+            flex-direction: column;
+            gap: 10px;
+        }
+
+        .lang-btn {
+            background: var(--black);
+            color: white;
+            border: none;
+            padding: 10px 20px;
+            font-family: 'Space Mono', monospace;
+            font-weight: 700;
+            cursor: pointer;
+            text-decoration: none;
+            text-align: center;
+            font-size: 12px;
+        }
+
+        .lang-btn:hover {
+            background: var(--accent);
+            color: black;
+        }
+
+        .print-btn {
+            background: var(--accent);
+            color: black;
+            border: 4px solid black;
+            padding: 15px 30px;
+            font-family: 'Space Mono', monospace;
+            font-weight: 900;
+            font-size: 16px;
+            cursor: pointer;
+            box-shadow: 5px 5px 0 black;
+            margin-bottom: 40px;
+            display: block;
+            width: 100%;
+            text-transform: uppercase;
+        }
+    </style>
+</head>
+
+<body>
+
+    <div class="lang-switch no-print">
+        <a href="#en" class="lang-btn">ENGLISH</a>
+        <a href="#es" class="lang-btn">ESPAÑOL</a>
+        <a href="#cn" class="lang-btn">中文</a>
+    </div>
+
+    <div class="container">
+        <button class="print-btn no-print" onclick="window.print()">GENERATE PDF (PRINT)</button>
+
+        <!-- ENGLISH VERSION -->
+        <div id="en">
+            <header>
+                <div class="header-meta">SEC_PROTOCOL_UPLINK // VYTRONIX_CORE_OPS</div>
+                <h1>VYTRONIX TECHNICAL MANUAL V2.0</h1>
+                <div class="status-badge">STATUS: [AUTHORITATIVE_RELEASE]</div>
+            </header>
+
+            <section>
+                <div class="section-header">
+                    <span class="section-number">01</span>
+                    <span class="section-title">Core Architecture</span>
+                </div>
+                <p>Vytronix is a modular, high-performance tactical intelligence stack designed for the decentralized
+                    era. Built with React and Framer Motion, it implements a "Brutalist" design philosophy—prioritizing
+                    raw data transparency and execution speed.</p>
+                <div class="tech-block">
+                    DOMAIN: DECENTRALIZED_INTELLIGENCE_ROUTING<br>
+                    STACK: REACT_18 // TAILWIND // FRAMER_MOTION<br>
+                    NETWORKS: SOLANA_MAINNET // BSC_MAINNET
+                </div>
+            </section>
+
+            <section>
+                <div class="section-header">
+                    <span class="section-number">02</span>
+                    <span class="section-title">AEGIS-1 Sentinel</span>
+                </div>
+                <p>The AEGIS-1 Sentinel is the platform's automated tactical agent. It autonomously identifies market
+                    opportunities using a proprietary multi-stage filtration protocol.</p>
+                <div class="module-card">
+                    <h4>Analysis Cycle</h4>
+                    <ul>
+                        <li><strong>SCAN:</strong> Real-time sweep of liquidity pools across connected chains.</li>
+                        <li><strong>ANALYZE:</strong> 24h volume/liquidity synthesis and volatility assessment.</li>
+                        <li><strong>READY:</strong> Authorization of execution patterns based on Alpha Scoring.</li>
+                        <li><strong>STRIKE:</strong> Direct atomic swap execution via optimized RPC gateways.</li>
+                    </ul>
+                </div>
+            </section>
+
+            <section>
+                <div class="section-header">
+                    <span class="section-number">03</span>
+                    <span class="section-title">Smart Money Radar</span>
+                </div>
+                <p>Institutional flow tracking via real-time Binance API integration. Vytronix filters high-value
+                    transactions to identify market movement precursors.</p>
+                <div class="module-card">
+                    <h4>Parameter Specifications</h4>
+                    <ul>
+                        <li><strong>Threshold:</strong> $15,000 USD (Adjustable for volatility indexing).</li>
+                        <li><strong>Retention:</strong> 45-second active pulse window (Optimal for HFT indicators).</li>
+                        <li><strong>Action Logic:</strong> Delta calculation for Accumulation vs. Liquidation profiling.
+                        </li>
+                    </ul>
+                </div>
+            </section>
+
+            <section>
+                <div class="section-header">
+                    <span class="section-number">04</span>
+                    <span class="section-title">Execution Security</span>
+                </div>
+                <p>Advanced security rails to ensure transaction integrity and front-run protection.</p>
+                <ul>
+                    <li><strong>MEV Shield:</strong> Direct routing via Jito and BSC flashbots.</li>
+                    <li><strong>Alpha Guard:</strong> Tiered permission system (L1/L2/ADMIN) for encrypted signal
+                        access.</li>
+                    <li><strong>Priority Rails:</strong> Dynamic bribe fee management for standard, high, and extreme
+                        dominance.</li>
+                </ul>
+            </section>
+        </div>
+
+        <div class="page-break"></div>
+
+        <!-- SPANISH VERSION -->
+        <div id="es">
+            <header>
+                <div class="header-meta">UPLINK_PROTOC_SEG // OPS_NUCLEO_VYTRONIX</div>
+                <h1>MANUAL TÉCNICO VYTRONIX V2.0</h1>
+                <div class="status-badge">ESTADO: [VERSIÓN_AUTORIZADA]</div>
+            </header>
+
+            <section>
+                <div class="section-header">
+                    <span class="section-number">01</span>
+                    <span class="section-title">Arquitectura Core</span>
+                </div>
+                <p>Vytronix es un stack de inteligencia táctica modular de alto rendimiento diseñado para la era
+                    descentralizada. Construido con React y Framer Motion, implementa una filosofía de diseño
+                    "Brutalista", priorizando la transparencia de los datos y la velocidad de ejecución.</p>
+                <div class="tech-block">
+                    DOMINIO: ENRUTAMIENTO_DE_INTELIGENCIA_DESCENTRALIZADA<br>
+                    STACK: REACT_18 // TAILWIND // FRAMER_MOTION<br>
+                    REDES: SOLANA_MAINNET // BSC_MAINNET
+                </div>
+            </section>
+
+            <section>
+                <div class="section-header">
+                    <span class="section-number">02</span>
+                    <span class="section-title">Sentinel AEGIS-1</span>
+                </div>
+                <p>El Sentinel AEGIS-1 es el agente táctico automatizado de la plataforma. Identifica de forma autónoma
+                    oportunidades de mercado utilizando un protocolo de filtración multietapa patentado.</p>
+                <div class="module-card">
+                    <h4>Ciclo de Análisis</h4>
+                    <ul>
+                        <li><strong>SCAN:</strong> Barrido en tiempo real de pools de liquidez en cadenas conectadas.
+                        </li>
+                        <li><strong>ANALYZE:</strong> Síntesis de volumen/liquidez de 24h y evaluación de volatilidad.
+                        </li>
+                        <li><strong>READY:</strong> Autorización de patrones de ejecución basados en Puntuación Alpha.
+                        </li>
+                        <li><strong>STRIKE:</strong> Ejecución de swap atómico directo a través de pasarelas RPC
+                            optimizadas.</li>
+                    </ul>
+                </div>
+            </section>
+
+            <section>
+                <div class="section-header">
+                    <span class="section-number">03</span>
+                    <span class="section-title">Radar de Dinero Inteligente</span>
+                </div>
+                <p>Rastreo de flujo institucional mediante integración de la API de Binance en tiempo real. Vytronix
+                    filtra transacciones de alto valor para identificar precursores de movimiento de mercado.</p>
+                <div class="module-card">
+                    <h4>Especificaciones de Parámetros</h4>
+                    <ul>
+                        <li><strong>Umbral:</strong> $15,000 USD (Ajustable para indexación de volatilidad).</li>
+                        <li><strong>Retención:</strong> Ventana de pulso activo de 45 segundos (Óptima para indicadores
+                            HFT).</li>
+                        <li><strong>Lógica de Acción:</strong> Cálculo delta para perfiles de Acumulación vs.
+                            Liquidación.</li>
+                    </ul>
+                </div>
+            </section>
+
+            <section>
+                <div class="section-header">
+                    <span class="section-number">04</span>
+                    <span class="section-title">Seguridad de Ejecución</span>
+                </div>
+                <p>Raíles de seguridad avanzados para garantizar la integridad de las transacciones y la protección
+                    contra el front-run.</p>
+                <ul>
+                    <li><strong>Escudo MEV:</strong> Enrutamiento directo a través de Jito y BSC flashbots.</li>
+                    <li><strong>Alpha Guard:</strong> Sistema de permisos por niveles (L1/L2/ADMIN) para acceso a
+                        señales encriptadas.</li>
+                    <li><strong>Raíles de Prioridad:</strong> Gestión dinámica de comisiones de soborno para dominancia
+                        estándar, alta y extrema.</li>
+                </ul>
+            </section>
+        </div>
+
+        <div class="page-break"></div>
+
+        <!-- CHINESE VERSION -->
+        <div id="cn">
+            <header>
+                <div class="header-meta">安全协议上行 // VYTRONIX 核心操作</div>
+                <h1>VYTRONIX 技术手册 V2.0</h1>
+                <div class="status-badge">状态: [权威发布]</div>
+            </header>
+
+            <section>
+                <div class="section-header">
+                    <span class="section-number">01</span>
+                    <span class="section-title">核心架构</span>
+                </div>
+                <p>Vytronix 是专为去中心化时代设计的高性能模块化战术情报堆栈。基于 React 和 Framer Motion 构建，它实现了“野兽主义”设计哲学——优先考虑原始数据透明度和执行速度。</p>
+                <div class="tech-block">
+                    领域: 去中心化智能路由<br>
+                    堆栈: REACT_18 // TAILWIND // FRAMER_MOTION<br>
+                    网络: SOLANA_MAINNET // BSC_MAINNET
+                </div>
+            </section>
+
+            <section>
+                <div class="section-header">
+                    <span class="section-number">02</span>
+                    <span class="section-title">AEGIS-1 哨兵</span>
+                </div>
+                <p>AEGIS-1 哨兵是平台的自动化战术代理。它使用专有的多阶段过滤协议自主识别市场机会。</p>
+                <div class="module-card">
+                    <h4>分析周期</h4>
+                    <ul>
+                        <li><strong>扫描:</strong> 实时扫描已连接链上的流动性池。</li>
+                        <li><strong>分析:</strong> 24 小时成交量/流动性合成及波动率评估。</li>
+                        <li><strong>就绪:</strong> 基于 Alpha 评分授权执行模式。</li>
+                        <li><strong>打击:</strong> 通过优化的 RPC 网关直接执行原子交换。</li>
+                    </ul>
+                </div>
+            </section>
+
+            <section>
+                <div class="section-header">
+                    <span class="section-number">03</span>
+                    <span class="section-title">聪明钱雷达</span>
+                </div>
+                <p>通过实时币安 API 集成跟踪机构资金流向。Vytronix 过滤高价值交易以识别市场波动的先兆。</p>
+                <div class="module-card">
+                    <h4>参数规范</h4>
+                    <ul>
+                        <li><strong>阈值:</strong> 15,000 美元 (可根据波动率指数调整)。</li>
+                        <li><strong>保留:</strong> 45 秒动态活动窗口 (最适用于高频交易指标)。</li>
+                        <li><strong>操作逻辑:</strong> “累积”与“清算”特征的 Delta 计算。</li>
+                    </ul>
+                </div>
+            </section>
+
+            <section>
+                <div class="section-header">
+                    <span class="section-number">04</span>
+                    <span class="section-title">执行安全</span>
+                </div>
+                <p>先进的安全防护，确保交易完整性和防抢跑保护。</p>
+                <ul>
+                    <li><strong>MEV 盾牌:</strong> 通过 Jito 和 BSC flashbots 直接路由。</li>
+                    <li><strong>Alpha Guard:</strong> 分级权限系统 (L1/L2/管理员) 用于加密信号访问。</li>
+                    <li><strong>优先级轨道:</strong> 用于标准、高级和极端占导地位的动态贿赂费用管理。</li>
+                </ul>
+            </section>
+        </div>
+
+        <footer>
+            © 2026 VYTRONIX TACTICAL SYSTEMS // SYSTEM_ID: [X-RAY-99] // AUTH_REQUIRED
+        </footer>
+    </div>
+
+</body>
+
+</html>

@@ -540,8 +540,9 @@ export function AIBot() {
                                                     handleSendMessage();
                                                 }
                                             }}
-                                            className="text-[8px] font-black uppercase bg-white border-2 border-black px-1.5 py-0.5 hover:bg-black hover:text-white transition-all shadow-[2px_2px_0_rgba(0,0,0,1)] active:shadow-none translate-y-0 active:translate-y-0.5 translate-x-0 active:translate-x-0.5"
+                                            className="text-[8px] font-black uppercase bg-white border-2 border-black px-1.5 py-0.5 hover:bg-black hover:text-white transition-all shadow-[2px_2px_0_rgba(0,0,0,1)] active:shadow-none translate-y-0 active:translate-y-0.5 translate-x-0 active:translate-x-0.5 flex items-center gap-1.5 group"
                                         >
+                                            <div className="w-1 h-1 bg-[#00ff41] rounded-full animate-pulse group-hover:bg-green-400" />
                                             [{q.label}]
                                         </button>
                                     ))}
