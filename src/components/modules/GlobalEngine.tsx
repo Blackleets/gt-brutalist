@@ -23,6 +23,8 @@ export function GlobalEngine() {
     const smWorkerRef = useRef<Worker | null>(null);
     const lastUnifiedBroadcastRef = useRef<Record<string, number>>({});
     const lastArbBroadcastRef = useRef<Record<string, number>>({});
+    const lastSurgeBroadcastRef = useRef<Record<string, number>>({});
+    const lastGlobalAlertTickRef = useRef<number>(0);
     const prevPoolsRef = useRef<Record<string, AethrixPool>>({});
 
     // Initialize Workers
@@ -80,13 +82,16 @@ export function GlobalEngine() {
                 }
 
                 // Broadcast High-Score Signals (> 60)
-                pools.forEach((pool: AethrixPool) => {
+                // Prioritize best signals first
+                const sortedPools = [...pools].sort((a, b) => (b.score || 0) - (a.score || 0));
+
+                sortedPools.forEach((pool: AethrixPool) => {
                     const unifiedScore = pool.score || 0;
                     if (unifiedScore > 60) {
                         const now = Date.now();
                         const lastBroadcast = lastUnifiedBroadcastRef.current[pool.baseToken.address] || 0;
 
-                        if (now - lastBroadcast > 300000) {
+                        if (now - lastBroadcast > 600000) { // 10 min cooldown
                             const tier = unifiedScore > 80 ? "ULTRA SIGNAL" : "HIGH SIGNAL";
 
                             if (sendTelegramMessage) {
@@ -111,26 +116,38 @@ export function GlobalEngine() {
                                 isPositive: true
                             });
 
-                            addAlert({
-                                tokenId: pool.id,
-                                tokenSymbol: pool.baseToken.symbol,
-                                message: `${tier} (SCORE: ${unifiedScore})`,
-                                type: "SCORE_SURGE"
-                            });
+                            if (now - lastGlobalAlertTickRef.current > 10000) { // Global throttle: 10s between ANY alerts
+                                addAlert({
+                                    tokenId: pool.id,
+                                    tokenSymbol: pool.baseToken.symbol,
+                                    message: `${tier} (SCORE: ${unifiedScore})`,
+                                    type: "SCORE_SURGE"
+                                });
+                                lastGlobalAlertTickRef.current = now;
+                            }
 
                             lastUnifiedBroadcastRef.current[pool.baseToken.address] = now;
                         }
                     }
 
-                    // Feed Logic for Surge Alerts
+                    // Feed Logic for Surge Alerts (De-duplicated & Cooldown)
                     const prev = prevPoolsRef.current[pool.id];
-                    if (alertsEnabled && prev && pool.score - prev.score >= 12) {
-                        addAlert({
-                            tokenId: pool.id,
-                            tokenSymbol: pool.baseToken.symbol,
-                            message: `MOMENTUM SURGE: +${pool.score - prev.score} pts`,
-                            type: "MOMENTUM_SPIKE"
-                        });
+                    if (alertsEnabled && prev && (pool.score - (prev.score || 0)) >= 15) {
+                        const now = Date.now();
+                        const lastSurge = lastSurgeBroadcastRef.current[pool.baseToken.address] || 0;
+
+                        if (now - lastSurge > 1200000) { // 20 min cooldown for momentum spikes
+                            if (now - lastGlobalAlertTickRef.current > 10000) {
+                                addAlert({
+                                    tokenId: pool.id,
+                                    tokenSymbol: pool.baseToken.symbol,
+                                    message: `MOMENTUM SURGE: +${pool.score - (prev.score || 0)} PTS`,
+                                    type: "MOMENTUM_SPIKE"
+                                });
+                                lastGlobalAlertTickRef.current = now;
+                            }
+                            lastSurgeBroadcastRef.current[pool.baseToken.address] = now;
+                        }
                     }
                 });
 
