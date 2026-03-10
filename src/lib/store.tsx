@@ -108,8 +108,11 @@ export interface RealArbitrageOpportunity {
     sellPrice: number;
     buyChain: string;
     sellChain: string;
-    profit: number;
-    estimatedProfitUtic: number;
+    profit: number; // Net ROI %
+    estimatedProfitUtic: number; // Net USD Profit
+    simulatedSize: number;
+    liquidityLevel: number;
+    netProfitAfterFees: number;
     timeLeft: number;
     confidence: "HIGH" | "MEDIUM" | "LOW";
     status: "ACTIVE" | "EXPIRED";
@@ -460,36 +463,38 @@ export function AppProvider({ children }: { children: ReactNode }) {
             }
             else {
                 // EVM-based wallets (MetaMask, OKX, etc.)
-                let provider = window.ethereum;
-                const providers = window.ethereum?.providers || [];
-
-                interface EthereumProvider extends Record<string, unknown> {
+                interface EthereumProvider {
                     isMetaMask?: boolean;
                     isOKXWallet?: boolean;
                     isOkxWallet?: boolean;
                     isWalletConnect?: boolean;
-                    request: (args: { method: string; params?: unknown[] | unknown }) => Promise<unknown>;
+                    request: (args: { method: string; params?: unknown }) => Promise<unknown>;
+                    providers?: EthereumProvider[];
                 }
 
-                if (type === "metamask") {
-                    provider = providers.find((p: EthereumProvider) => p.isMetaMask && !p.isOKXWallet && !p.isOkxWallet) ||
-                        (window.ethereum?.isMetaMask && !window.ethereum?.isOKXWallet && !window.ethereum?.isOkxWallet ? window.ethereum : undefined);
+                const eth = window.ethereum as EthereumProvider | undefined;
+                let provider: EthereumProvider | undefined = eth;
+                const providers = eth?.providers || [];
 
-                    if (!provider && (window.ethereum?.isOKXWallet || window.ethereum?.isOkxWallet)) {
+                if (type === "metamask") {
+                    provider = providers.find((p) => p.isMetaMask && !p.isOKXWallet && !p.isOkxWallet) ||
+                        (eth?.isMetaMask && !eth?.isOKXWallet && !eth?.isOkxWallet ? eth : undefined);
+
+                    if (!provider && (eth?.isOKXWallet || eth?.isOkxWallet)) {
                         addSystemLog("METAMASK_INTERCEPTED_BY_OKX", "error");
                     }
                 }
                 else if (type === "okx") {
-                    provider = window.okxwallet ||
-                        providers.find((p: EthereumProvider) => p.isOKXWallet || p.isOkxWallet) ||
-                        (window.ethereum?.isOKXWallet || window.ethereum?.isOkxWallet ? window.ethereum : undefined);
+                    provider = (window as unknown as { okxwallet?: EthereumProvider }).okxwallet ||
+                        providers.find((p) => p.isOKXWallet || p.isOkxWallet) ||
+                        (eth?.isOKXWallet || eth?.isOkxWallet ? eth : undefined);
                 }
                 else if (type === "walletconnect") {
-                    provider = window.ethereum?.providers?.find((p: EthereumProvider) => p.isWalletConnect) || window.ethereum;
+                    provider = eth?.providers?.find((p) => p.isWalletConnect) || eth;
                 }
 
                 if (!provider) {
-                    provider = window.ethereum;
+                    provider = eth;
                 }
 
                 if (!provider) throw new Error(`${type.toUpperCase()}_EXTENSION_MISSING`);

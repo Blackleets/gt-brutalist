@@ -225,7 +225,8 @@ export function Header() {
                     { id: "SOCIAL_HUB", label: t.nav_social },
                     { id: "CHART_TERMINAL", label: t.nav_charts },
                     { id: "PORTFOLIO", label: t.nav_analytics },
-                    { id: "COMMAND_CENTER", label: t.nav_cc }
+                    { id: "COMMAND_CENTER", label: t.nav_cc },
+                    { id: "WHITEPAPER_V3", label: t.nav_whitepaper }
                 ].map((view) => (
                     <button
                         key={view.id}

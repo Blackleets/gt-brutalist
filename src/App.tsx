@@ -19,6 +19,7 @@ import { CommandCenter } from "@/components/modules/CommandCenter";
 import { AIBot } from "@/components/modules/AIBot";
 import { translations } from "@/lib/translations";
 import { SocialIntelligenceHub } from "@/components/modules/SocialIntelligenceHub";
+import { WhitepaperV3 } from "@/components/modules/WhitepaperV3";
 
 export default function App() {
   return (
@@ -29,7 +30,7 @@ export default function App() {
 }
 
 function AppContent() {
-  const { networkMode, setNetworkMode, activeViewId, language, setLanguage, adminConfig } = useAppStore();
+  const { networkMode, setNetworkMode, activeViewId, setActiveViewId, language, setLanguage, adminConfig } = useAppStore();
   const t = translations[language];
 
   return (
@@ -82,6 +83,8 @@ function AppContent() {
           </div>
         )}
 
+        {activeViewId === "WHITEPAPER_V3" && <WhitepaperV3 />}
+
         {/* CTA */}
         <section className="px-4 md:px-16 py-12 md:py-20 relative z-10">
           <motion.div
@@ -129,7 +132,13 @@ function AppContent() {
                 <li><a href="#" className="hover:text-[#00ff41] transition-colors hover:underline">{t.footer_swap}</a></li>
                 <li><a href="#" className="hover:text-[#00ff41] transition-colors hover:underline">{t.footer_telemetry}</a></li>
                 <li><a href="#" className="hover:text-[#00ff41] transition-colors hover:underline">{t.footer_status}</a></li>
-                <li><a href="#" className="hover:text-[#00ff41] transition-colors hover:underline">{t.footer_whitepaper}</a></li>
+                <li><a
+                  href="#"
+                  onClick={(e) => { e.preventDefault(); setActiveViewId("WHITEPAPER_V3"); window.scrollTo({ top: 0, behavior: "smooth" }); }}
+                  className="hover:text-[#00ff41] transition-colors hover:underline"
+                >
+                  {t.footer_whitepaper}
+                </a></li>
               </ul>
             </div>
 
