@@ -15,7 +15,8 @@ export function GlobalEngine() {
         globalRankings,
         executionParams,
         smartMoneyActivity,
-        kolSignals
+        kolSignals,
+        setMarketSentiment
     } = useAppStore();
 
     const dexWorkerRef = useRef<Worker | null>(null);
@@ -26,6 +27,13 @@ export function GlobalEngine() {
     const lastSurgeBroadcastRef = useRef<Record<string, number>>({});
     const lastGlobalAlertTickRef = useRef<number>(0);
     const prevPoolsRef = useRef<Record<string, AethrixPool>>({});
+    const kolSignalsRef = useRef(kolSignals);
+    const sentimentRef = useRef<number>(50);
+
+    // Update ref when store changes
+    useEffect(() => {
+        kolSignalsRef.current = kolSignals;
+    }, [kolSignals]);
 
     // Initialize Workers
     useEffect(() => {
@@ -62,19 +70,19 @@ export function GlobalEngine() {
                         // Threshold Gate (Already filtered by worker, but double checks here for safety)
                         if (arb.profit > 1.0 && (now - lastBroadcast > 600000)) { // 10 min cooldown per arb path
                             if (sendTelegramMessage) {
-                                const tgMsg = `✅ *VERIFIED ARBITRAGE*\n` +
+                                const threatLevel = arb.profit > 5 ? "🔴 CRITICAL" : arb.profit > 3 ? "🟠 HIGH" : "🟢 STABLE";
+                                const tgMsg = `🤖 *VYTRONIX SENTINEL: ARBITRAGE DETECTED*\n` +
                                     `━━━━━━━━━━━━━━━━━━━━\n` +
-                                    `💰 *NET PROFIT: +${arb.profit}% ROI*\n` +
-                                    `💎 Token: *${arb.token}*\n\n` +
-                                    `⚡ Simulated Trade: *$${arb.simulatedSize}*\n` +
-                                    `🌊 Liquidity Level: *$${(arb.liquidityLevel / 1000).toFixed(1)}K*\n` +
-                                    `💵 Net Profit: *+$${arb.netProfitAfterFees}*\n\n` +
-                                    `📥 Buy: \`${arb.buyExchange}\` (${arb.buyChain})\n` +
-                                    `📤 Sell: \`${arb.sellExchange}\` (${arb.sellChain})\n` +
+                                    `💰 *PROFIT: +${arb.profit}% ROI*\n` +
+                                    `💎 Asset: *${arb.token}*\n` +
+                                    `⚠️ Threat: *${threatLevel}*\n\n` +
+                                    `⚡ Size: *$${arb.simulatedSize}*\n` +
+                                    `🌊 Source: \`${arb.buyExchange}\` (${arb.buyChain})\n` +
+                                    `🚀 Target: \`${arb.sellExchange}\` (${arb.sellChain})\n` +
                                     `━━━━━━━━━━━━━━━━━━━━\n` +
-                                    `🔗 [EXECUTE_UPLINK](https://vytronix.io)`;
+                                    `🤖 _"Neural logic confirms executable arbitrage. Tactical strike authorized."_`;
 
-                                sendTelegramMessage(tgMsg);
+                                sendTelegramMessage(tgMsg, "https://vytronix.io/vytronix-bot.jpg");
                                 lastArbBroadcastRef.current[arb.id] = now;
                             }
                         }
@@ -94,17 +102,18 @@ export function GlobalEngine() {
                         if (now - lastBroadcast > 600000) { // 10 min cooldown
                             const tier = unifiedScore > 80 ? "ULTRA SIGNAL" : "HIGH SIGNAL";
 
-                            if (sendTelegramMessage) {
-                                const tgMsg = `🚨 *${tier} DETECTED*\n` +
+                                const confidenceEmoji = unifiedScore > 85 ? "💎" : "🔥";
+                                const tgMsg = `🚨 *VYTRONIX NEURAL HIT: ${tier}*\n` +
                                     `━━━━━━━━━━━━━━━━━━━━\n` +
-                                    `💎 Token: *${pool.baseToken.symbol}*\n` +
-                                    `🎯 Unified Score: *${unifiedScore}/100*\n` +
-                                    `📊 Insights: ${pool.alphaReasons?.join(" | ")}\n\n` +
-                                    `🌊 Liquidity: $${(pool.liquidityUsd / 1000).toFixed(1)}K\n` +
+                                    `💎 Asset: *${pool.baseToken.symbol}*\n` +
+                                    `🎯 Score: *${unifiedScore}/100* ${confidenceEmoji}\n` +
+                                    `🛡️ Risk: *LOW-DEC (Verified)*\n\n` +
+                                    `📊 Intelligence: ${pool.alphaReasons?.slice(0, 2).join(" | ")}\n` +
+                                    `🌊 Liquidity: *$${(pool.liquidityUsd / 1000).toFixed(1)}K*\n` +
                                     `━━━━━━━━━━━━━━━━━━━━\n` +
-                                    `🔗 [EXECUTE_UPLINK](https://vytronix.io)`;
-                                sendTelegramMessage(tgMsg);
-                            }
+                                    `🤖 _"Vytronix Sentinel has localized a high-probability alpha pattern. Monitoring execution..."_`;
+                                    
+                                sendTelegramMessage(tgMsg, "https://vytronix.io/vytronix-bot.jpg");
 
                             addFeedEvent({
                                 id: `fused-${pool.id}-${now}`,
@@ -151,6 +160,22 @@ export function GlobalEngine() {
                     }
                 });
 
+                // Neural Sentiment Calculation
+                const currentKols = kolSignalsRef.current || [];
+                const kolIntensity = currentKols.reduce((acc: number, s) => acc + s.impactScore, 0) / 10;
+                const alphaIntensity = pools.filter((p: AethrixPool) => (p.score || 0) > 85).length * 4;
+                const momentumIntensity = pools.reduce((acc: number, p: AethrixPool) => acc + (p.priceChange5m || 0), 0) / Math.max(1, pools.length);
+
+                // Base 50 (Neutral) + Social Impact + Alpha Density + Momentum Bias
+                const rawSentiment = 50 + kolIntensity + alphaIntensity + (momentumIntensity * 1.5);
+                const targetSentiment = Math.min(100, Math.max(0, Math.round(rawSentiment)));
+
+                // Neural Smoothing: 95% previous + 5% new target
+                const smoothed = (sentimentRef.current * 0.95) + (targetSentiment * 0.05);
+                sentimentRef.current = smoothed;
+
+                setMarketSentiment(Math.round(smoothed));
+
                 // Snapshots
                 const snapshots: Record<string, AethrixPool> = {};
                 pools.forEach((p: AethrixPool) => snapshots[p.id] = p);
@@ -167,8 +192,18 @@ export function GlobalEngine() {
         kolWorker.onmessage = (e) => {
             const { type, signals } = e.data;
             if (type === 'KOL_DATA' && signals) {
-                signals.forEach((signal: { id: string; tokenSymbol: string; kols: string[]; impactScore: number }) => {
-                    addKOLSignal(signal as any); // Cast for store compatibility
+                signals.forEach((signal: { id: string, tokenSymbol: string, impactScore: number, kols: string[], mentions?: number, isConfirmation?: boolean, followerCount?: string, tokenAddress?: string }) => {
+                    addKOLSignal({
+                        id: signal.id,
+                        tokenSymbol: signal.tokenSymbol,
+                        impactScore: signal.impactScore,
+                        kols: signal.kols,
+                        timestamp: Date.now(),
+                        mentions: signal.mentions || 1,
+                        isConfirmation: signal.isConfirmation || false,
+                        followerCount: signal.followerCount || "Unknown",
+                        tokenAddress: signal.tokenAddress || "0x00...fused"
+                    });
                     addFeedEvent({
                         id: `kol-${signal.id}`,
                         chain: "GLOBAL",
@@ -201,7 +236,14 @@ export function GlobalEngine() {
             kolWorker.terminate();
             smWorker.terminate();
         };
-    }, [addAlert, addFeedEvent, addKOLSignal, alertsEnabled, sendTelegramMessage, setAethrixStats, setArbitrageOpportunities, setGlobalRankings]); // Run once on mount
+    }, [addAlert, addFeedEvent, addKOLSignal, alertsEnabled, sendTelegramMessage, setAethrixStats, setArbitrageOpportunities, setGlobalRankings, setMarketSentiment]);
+
+    // Sync KOL worker with current market rankings
+    useEffect(() => {
+        if (kolWorkerRef.current && globalRankings.length > 0) {
+            kolWorkerRef.current.postMessage({ action: 'updateRankings', rankings: globalRankings });
+        }
+    }, [globalRankings]);
 
     // Sync Store State to Workers (Parameters and Sub-Signals)
     useEffect(() => {

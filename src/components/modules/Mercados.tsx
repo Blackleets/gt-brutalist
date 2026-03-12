@@ -223,7 +223,7 @@ const AlphaCard = memo(({ pool, onSwipe, isTop, isAuthorized, onSnipe }: AlphaCa
 // --- MAIN COMPONENT: MERCADOS ---
 
 export function Mercados() {
-    const { globalRankings, setActiveViewId, setPrefilledSwap, language, triggerGlobalSync, aethrixStats } = useAppStore();
+    const { globalRankings, setActiveViewId, setPrefilledSwap, language, triggerGlobalSync, aethrixStats, marketSentiment } = useAppStore();
     const t = translations[language];
     const { isAuthorized } = useAlphaGuard();
 
@@ -338,7 +338,7 @@ export function Mercados() {
                         </button>
                     </div>
 
-                    <div className="pt-8 border-t-4 border-black grid grid-cols-2 gap-8 relative overflow-hidden">
+                    <div className="pt-8 border-t-4 border-black grid grid-cols-2 md:grid-cols-3 gap-8 relative overflow-hidden">
                         {/* Status Grid Background */}
                         <div className="absolute inset-0 opacity-[0.05] bg-[radial-gradient(#000_1px,transparent_1px)] bg-[size:10px_10px]" />
 
@@ -351,9 +351,28 @@ export function Mercados() {
                             <div className="text-[9px] font-black uppercase text-gray-400 mt-1">Live Pairs Indexing</div>
                         </div>
 
-                        <div className="relative border-l-2 border-black/10 pl-4 md:pl-6">
+                        <div className="relative border-l-2 border-black/10 pl-4 md:pl-6 leading-none flex flex-col justify-center">
                             <div className="flex items-center gap-1 mb-1 md:mb-2">
-                                <ShieldAlert size={10} className="text-[#00ff41] md:w-[12px]" />
+                                <Activity size={10} className="text-[#00ff41] md:w-[12px]" />
+                                <div className="text-[8px] md:text-[10px] font-black text-gray-400 uppercase tracking-widest">{t.market_sentiment}</div>
+                            </div>
+                            <div className="flex items-end gap-2">
+                                <div className="text-3xl md:text-4xl font-black italic text-black">{marketSentiment}%</div>
+                                {/* Matrix Gauge */}
+                                <div className="flex-grow h-2 bg-black/10 rounded-full overflow-hidden mb-2 hidden md:block">
+                                    <motion.div
+                                        initial={{ width: 0 }}
+                                        animate={{ width: `${marketSentiment}%` }}
+                                        className={`h-full ${marketSentiment > 70 ? 'bg-[#00ff41]' : marketSentiment > 40 ? 'bg-yellow-500' : 'bg-red-600'}`}
+                                    />
+                                </div>
+                            </div>
+                            <div className="text-[8px] md:text-[9px] font-black uppercase text-gray-400 mt-1">Ecosystem Pulse</div>
+                        </div>
+
+                        <div className="relative border-l-2 border-black/10 pl-4 md:pl-6 leading-none flex flex-col justify-center">
+                            <div className="flex items-center gap-1 mb-1 md:mb-2 text-[#00ff41]">
+                                <ShieldAlert size={10} className="md:w-[12px]" />
                                 <div className="text-[8px] md:text-[10px] font-black text-gray-400 uppercase tracking-widest">Alpha Alerts</div>
                             </div>
                             <div className="text-3xl md:text-4xl font-black italic text-[#00ff41]">{activePools.filter(p => p.score > 70).length}</div>

@@ -1,4 +1,5 @@
 import { useState, useEffect } from "react";
+import { motion } from "framer-motion";
 import { useAppStore } from "@/lib/store";
 import { WalletModal } from "./WalletModal";
 import { AdminModal } from "./AdminModal";
@@ -18,7 +19,8 @@ export function Header() {
         setLanguage,
         audioEnabled,
         setAudioEnabled,
-        aethrixStats
+        aethrixStats,
+        marketSentiment
     } = useAppStore();
     const t = translations[language];
     const [isModalOpen, setIsModalOpen] = useState(false);
@@ -121,6 +123,41 @@ export function Header() {
                             <div className="flex flex-col leading-none">
                                 <span className="text-[7px] font-black text-zinc-400 uppercase">{t.head_latency}</span>
                                 <span className="text-[10px] font-black">{latency}ms</span>
+                            </div>
+                        </div>
+
+                        {/* Neural Sentiment Pulse */}
+                        <div className="px-3 md:flex items-center gap-3 border-r-2 border-black bg-zinc-50 group cursor-help transition-all hover:bg-zinc-100" title="Neural Market Sentiment">
+                            <div className="relative flex h-2.5 w-2.5">
+                                <span className={`animate-ping absolute inline-flex h-full w-full rounded-full opacity-75 ${marketSentiment > 70 ? 'bg-[#00ff41]' : marketSentiment > 40 ? 'bg-[#fffc20]' : 'bg-red-600'}`}></span>
+                                <span className={`relative inline-flex rounded-full h-2.5 w-2.5 ${marketSentiment > 70 ? 'bg-[#00ff41]' : marketSentiment > 40 ? 'bg-[#fffc20]' : 'bg-red-600'}`}></span>
+                            </div>
+                            <div className="flex flex-col leading-none">
+                                <span className="text-[7px] font-black text-zinc-400 uppercase tracking-tighter">{t.market_sentiment}</span>
+                                <div className="flex items-end gap-1">
+                                    <span className={`text-[11px] font-black ${marketSentiment > 70 ? 'text-[#00ff41]' : marketSentiment > 40 ? 'text-yellow-500' : 'text-red-600'}`}>{marketSentiment}%</span>
+                                    {/* Mini Sparkline */}
+                                    <div className="flex gap-[1px] items-end h-3 opacity-60">
+                                        {[...Array(6)].map((_, i) => (
+                                            <motion.div
+                                                key={i}
+                                                animate={{
+                                                    height: [
+                                                        `${20 + (i * 15) % 80}%`,
+                                                        `${80 - (i * 10) % 80}%`,
+                                                        `${40 + (i * 20) % 60}%`
+                                                    ]
+                                                }}
+                                                transition={{
+                                                    duration: 0.6 + (i * 0.15),
+                                                    repeat: Infinity,
+                                                    ease: "easeInOut"
+                                                }}
+                                                className={`w-[1px] ${marketSentiment > 70 ? 'bg-[#00ff41]' : marketSentiment > 40 ? 'bg-yellow-500' : 'bg-red-600'}`}
+                                            />
+                                        ))}
+                                    </div>
+                                </div>
                             </div>
                         </div>
 

@@ -232,6 +232,8 @@ export interface AppState {
     setActiveViewId: (id: string) => void;
     language: Language;
     setLanguage: (l: Language) => void;
+    marketSentiment: number;
+    setMarketSentiment: (val: number) => void;
 
     // Audio System
     audioEnabled: boolean;
@@ -271,6 +273,7 @@ export function AppProvider({ children }: { children: ReactNode }) {
     });
 
     const [audioEnabled, setAudioEnabled] = useState(false);
+    const [marketSentiment, setMarketSentiment] = useState<number>(50);
 
     const setLanguage = useCallback((lang: Language) => {
         setLanguageState(lang);
@@ -1301,7 +1304,8 @@ export function AppProvider({ children }: { children: ReactNode }) {
         audioEnabled, setAudioEnabled,
         kolSignals, addKOLSignal,
         chatMessages, addChatMessage,
-        executionParams, setExecutionParams
+        executionParams, setExecutionParams,
+        marketSentiment, setMarketSentiment
     }), [
         selectedChain, activeRpcPerChain, activeEnvPerChain, apiKey, wallet, aethrixStats, latency, rpcHealth,
         alertsEnabled, activeAlerts, watchlist, positionSnapshots, smartWallets, bscScanKey, smartMoneyActivity,
@@ -1321,7 +1325,8 @@ export function AppProvider({ children }: { children: ReactNode }) {
         audioEnabled, setAudioEnabled,
         kolSignals, addKOLSignal,
         chatMessages, addChatMessage,
-        executionParams, setExecutionParams
+        executionParams, setExecutionParams,
+        marketSentiment, setMarketSentiment
     ]);
 
     return (

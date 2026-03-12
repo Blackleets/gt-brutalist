@@ -78,6 +78,7 @@ export const translations = {
         head_audio: "SYNTHETIC_AUDIO",
         head_latency: "SYSTEM_LATENCY",
         head_rpc_status: "RPC_ENDPOINT",
+        market_sentiment: "SENTIMENT",
 
         wallet_title: "UPLINK",
         wallet_node: "SELECT_NODE",
@@ -367,6 +368,11 @@ export const translations = {
         bot_insight_3: "Price disparity detected between Jupiter and Orca. Arbitrage opportunity imminent.",
         bot_insight_4: "Market sentiment is neutral-bullish. Holding position.",
         bot_insight_5: "Unusual activity on Binance Smart Chain smart contracts. Minimum caution.",
+        bot_terminal_mode: "Terminal_Mode",
+        bot_suggest_visualize: "Visualize Market",
+        bot_visualizing: "GENERATING_NEURAL_MARKET_VISUALIZATION... ██████ 100%",
+        bot_terminal_active: "MATRIX_TERMINAL_ACTIVE // CRT_FILTER: ON",
+        bot_terminal_deactive: "GUI_INTERFACE_RESTORED",
 
         // Portfolio
         port_title: "MY PORTFOLIO",
@@ -899,6 +905,11 @@ export const translations = {
         bot_insight_3: "Disparidad de precios detectada entre Jupiter y Orca. Oportunidad de arbitraje inminente.",
         bot_insight_4: "El sentimiento del mercado es neutral-alcista. Manteniendo posición.",
         bot_insight_5: "Actividad inusual en contratos inteligentes de Binance Smart Chain. Precaución mínima.",
+        bot_terminal_mode: "Modo_Terminal",
+        bot_suggest_visualize: "Visualizar Mercado",
+        bot_visualizing: "GENERANDO_VISUALIZACIÓN_NEURAL_DE_MERCADO... ██████ 100%",
+        bot_terminal_active: "TERMINAL_MATRIZ_ACTIVA // FILTRO_CRT: ACTIVADO",
+        bot_terminal_deactive: "INTERFAZ_GUI_RESTAURADA",
 
         // Portfolio
         port_title: "MI PORTAFOLIO",
@@ -940,6 +951,7 @@ export const translations = {
         head_audio: "AUDIO_SINTÉTICO",
         head_latency: "LATENCIA_SISTEMA",
         head_rpc_status: "PUNTO_RPC",
+        market_sentiment: "SENTIMIENTO",
 
         // Wallet Modal
         wallet_system_core: "Núcleo_Sistema_v5.0",
@@ -1178,6 +1190,7 @@ export const translations = {
         head_audio: "合成音频",
         head_latency: "系统延迟",
         head_rpc_status: "RPC终端",
+        market_sentiment: "市场情绪",
 
         // Wallet Modal
         wallet_title: "链路连接",
@@ -1509,6 +1522,11 @@ export const translations = {
         bot_insight_3: "检测到 Jupiter 和 Orca 之间存在价格差异。套利机会迫在眉睫。",
         bot_insight_4: "市场情绪为中性偏多。保持头寸。",
         bot_insight_5: "币安智能链智能合约活动异常。保持最低限度的谨慎。",
+        bot_terminal_mode: "终端模式",
+        bot_suggest_visualize: "可视化市场",
+        bot_visualizing: "正在生成神经市场可视化... ██████ 100%",
+        bot_terminal_active: "矩阵终端已激活 // CRT 滤镜: 开启",
+        bot_terminal_deactive: "GUI 界面已恢复",
 
         // Portfolio
         port_title: "我的投资组合",

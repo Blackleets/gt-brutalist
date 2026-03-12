@@ -1,69 +1,45 @@
 import { useState, useEffect, useRef, useMemo } from "react";
 import { motion, AnimatePresence, useDragControls, useMotionValue, useSpring, useTransform, MotionValue } from "framer-motion";
-import { X, Terminal, ArrowRight, Send, MessageSquareText, Trash2 } from "lucide-react";
+import { X, Terminal, ArrowRight, Send, MessageSquareText, Trash2, Activity } from "lucide-react";
 import { useAppStore } from "@/lib/store";
 import { translations } from "@/lib/translations";
 import { findAnswer } from "@/lib/VytronixKnowledge";
 
-const BrutalistRobot = ({ isActive, tiltX, tiltY }: { isActive: boolean, tiltX: MotionValue<number>, tiltY: MotionValue<number> }) => (
-    <motion.svg
-        viewBox="0 0 100 100"
-        className="w-[42px] h-[42px] relative z-10"
-        fill="none"
-        xmlns="http://www.w3.org/2000/svg"
-        style={{
-            rotateX: tiltY,
-            rotateY: tiltX,
-            perspective: 1000,
-            transformStyle: "preserve-3d"
-        }}
-    >
-        {/* Deep background shadow block */}
-        <rect x="15" y="15" width="70" height="70" fill={isActive ? "#00ff41" : "#333"} opacity="0.2" className={isActive ? "animate-pulse" : ""} />
-
-        {/* Main brutalist geometric head - an inverted pyramid vibe */}
-        <path d="M 5 10 L 95 10 L 80 90 L 20 90 Z" stroke="currentColor" strokeWidth="6" strokeLinejoin="miter" fill="transparent" />
-        <path d="M 20 90 L 50 100 L 80 90" stroke="currentColor" strokeWidth="6" strokeLinejoin="miter" fill="transparent" />
-
-        {/* Giant Monolithic Eye */}
-        <rect x="30" y="30" width="40" height="15" stroke="currentColor" strokeWidth="5" fill={isActive ? "#00ff41" : "transparent"} />
+const BrutalistRobot = ({ isActive }: { isActive: boolean, tiltX: MotionValue<number>, tiltY: MotionValue<number> }) => (
+    <div className="relative w-full h-full flex items-center justify-center bg-black overflow-hidden group">
+        <motion.img 
+            src="/vytronix-bot.jpg" 
+            alt="Vytronix Sentinel"
+            className={`w-[120%] h-[120%] object-cover object-center max-w-none transition-all duration-700 ${isActive ? 'brightness-125 contrast-125' : 'brightness-75 grayscale-[0.5]'}`}
+            initial={{ scale: 1.1 }}
+            animate={isActive ? { 
+                scale: [1.1, 1.15, 1.1],
+                filter: ["hue-rotate(0deg)", "hue-rotate(10deg)", "hue-rotate(0deg)"]
+            } : {}}
+            transition={{ duration: 4, repeat: Infinity, ease: "easeInOut" }}
+        />
+        <div className="absolute inset-0 bg-gradient-to-t from-black via-transparent to-transparent opacity-60" />
         {isActive && (
-            <>
-                <circle cx="40" cy="37.5" r="3" fill="#000" className="animate-ping [animation-duration:3s]" />
-                <circle cx="60" cy="37.5" r="3" fill="#000" className="animate-ping [animation-duration:3.1s]" />
-            </>
+            <div className="absolute inset-0 bg-[#00ff41]/10 animate-pulse pointer-events-none" />
         )}
-
-        {/* Central Vertical vent/processing line */}
-        <line x1="50" y1="10" x2="50" y2="30" stroke="currentColor" strokeWidth="4" />
-        <line x1="50" y1="45" x2="50" y2="95" stroke="currentColor" strokeWidth="4" />
-
-        {/* Data intake grills */}
-        <path d="M 35 60 L 65 60 M 40 70 L 60 70 M 45 80 L 55 80" stroke="currentColor" strokeWidth="5" strokeLinecap="square" />
-
-        {/* Side antennas/connectors */}
-        <path d="M 5 30 L -5 30 M 95 30 L 105 30 M 12 50 L -2 50 M 88 50 L 102 50" stroke="currentColor" strokeWidth="4" strokeLinecap="square" />
-
-        {/* Active scanning elements */}
-        {isActive && (
-            <rect x="5" y="0" width="90" height="4" fill="#00ff41" opacity="0.5">
-                <animate attributeName="y" values="10;90;10" dur="2s" repeatCount="indefinite" />
-            </rect>
-        )}
-    </motion.svg>
+        {/* Scanline Overlay */}
+        <div className="absolute inset-0 bg-[linear-gradient(rgba(18,16,16,0)_50%,rgba(0,0,0,0.1)_50%)] bg-[length:100%_4px] pointer-events-none opacity-20" />
+    </div>
 );
+
+const DEFAULT_HISTORY = (lang: string) => [
+    { sender: "bot", text: translations[lang as keyof typeof translations].bot_greeting, type: "text" as const }
+];
 
 interface ChatMessage {
     sender: string;
     text: string;
+    type?: "text" | "image";
+    imagePath?: string;
 }
 
-const DEFAULT_HISTORY = (lang: string) => [
-    { sender: "bot", text: translations[lang as keyof typeof translations].bot_greeting }
-];
-
 export function AIBot() {
-    const { networkMode, wallet, networkFeed, arbitrageOpportunities, language, kolSignals } = useAppStore();
+    const { networkMode, wallet, networkFeed, arbitrageOpportunities, language, kolSignals, audioEnabled: isAudioEnabled, setAudioEnabled: setIsAudioEnabled, marketSentiment } = useAppStore();
     const t = translations[language];
     const lastFeedCount = useRef(networkFeed.length);
     const lastArbCount = useRef(arbitrageOpportunities.length);
@@ -83,6 +59,7 @@ export function AIBot() {
     const [messageIndex, setMessageIndex] = useState(0);
     const [inputValue, setInputValue] = useState("");
     const [dynamicAlert, setDynamicAlert] = useState("");
+    const [isTerminalMode, setIsTerminalMode] = useState(false);
     const mouseX = useMotionValue(0);
     const mouseY = useMotionValue(0);
 
@@ -134,10 +111,10 @@ export function AIBot() {
     // Vytronix AI Context & Multi-language suggestions
     const aiSuggestions = useMemo(() => [
         t.bot_suggest_audit,
-        t.bot_suggest_contract,
+        t.bot_suggest_visualize,
         t.bot_suggest_whales,
-        t.bot_suggest_price
-    ], [t]);
+        t.bot_terminal_mode
+    ].filter(Boolean) as string[], [t]);
 
     // Handle language change for the initial greeting - Optimized to avoid cascading renders
     const lastLanguage = useRef(language);
@@ -201,7 +178,7 @@ export function AIBot() {
                 setTimeout(() => {
                     setChatHistory(prev => {
                         if (prev[prev.length - 1]?.text === sniperAlert) return prev;
-                        return [...prev, { sender: "bot", text: sniperAlert }];
+                        return [...prev, { sender: "bot", text: sniperAlert, type: "text" as const }];
                     });
 
                     if (!isChatOpen) {
@@ -237,7 +214,7 @@ export function AIBot() {
                 setTimeout(() => {
                     setChatHistory((prev: ChatMessage[]) => {
                         if (prev[prev.length - 1]?.text === arbAlert) return prev;
-                        return [...prev, { sender: "bot", text: arbAlert }];
+                        return [...prev, { sender: "bot", text: arbAlert, type: "text" as const }];
                     });
                 }, 100);
             }
@@ -264,7 +241,7 @@ export function AIBot() {
                 setTimeout(() => {
                     setChatHistory((prev: ChatMessage[]) => {
                         if (prev.some(m => m.text === botMsg)) return prev;
-                        return [...prev, { sender: "bot", text: botMsg }];
+                        return [...prev, { sender: "bot", text: botMsg, type: "text" as const }];
                     });
 
                     if (!isChatOpen) {
@@ -324,14 +301,35 @@ export function AIBot() {
         }
     }, [chatHistory, isChatOpen]);
 
+    // Audio Feedback helper
+    const playAudio = (type: "msg" | "alert") => {
+        if (!isAudioEnabled) return;
+        try {
+            const freq = type === "alert" ? 440 : 880;
+            const AudioContextClass = (window.AudioContext || (window as unknown as { webkitAudioContext: typeof AudioContext }).webkitAudioContext);
+            const audioCtx = new AudioContextClass();
+            const osc = audioCtx.createOscillator();
+            const gain = audioCtx.createGain();
+            osc.type = "square";
+            osc.frequency.setValueAtTime(freq, audioCtx.currentTime);
+            gain.gain.setValueAtTime(0.02, audioCtx.currentTime);
+            gain.gain.exponentialRampToValueAtTime(0.0001, audioCtx.currentTime + 0.1);
+            osc.connect(gain);
+            gain.connect(audioCtx.destination);
+            osc.start();
+            osc.stop(audioCtx.currentTime + 0.1);
+        } catch (e) { console.warn("Audio Context Failed", e); }
+    };
+
     const handleSendMessage = (e?: React.FormEvent | React.KeyboardEvent) => {
         if (e && 'preventDefault' in e) e.preventDefault();
         if (!inputValue.trim()) return;
 
         const userMsg = inputValue.trim();
-        setChatHistory((prev: ChatMessage[]) => [...prev, { sender: "user", text: userMsg }]);
+        setChatHistory((prev: ChatMessage[]) => [...prev, { sender: "user", text: userMsg, type: "text" as const }]);
         setInputValue("");
         setIsThinking(true);
+        playAudio("msg");
 
         setTimeout(() => {
             const lowerMsg = userMsg.toLowerCase();
@@ -347,16 +345,16 @@ export function AIBot() {
                 const t_lp = t.bot_lp_scan;
                 const t_auth = t.bot_auth_scan;
 
-                setChatHistory((p: ChatMessage[]) => [...p, { sender: "bot", text: t_lock }]);
-                setTimeout(() => setChatHistory((p: ChatMessage[]) => [...p, { sender: "bot", text: t_lp }]), 800);
-                setTimeout(() => setChatHistory((p: ChatMessage[]) => [...p, { sender: "bot", text: t_auth }]), 1600);
+                setChatHistory((p: ChatMessage[]) => [...p, { sender: "bot", text: t_lock, type: "text" as const }]);
+                setTimeout(() => setChatHistory((p: ChatMessage[]) => [...p, { sender: "bot", text: t_lp, type: "text" as const }]), 800);
+                setTimeout(() => setChatHistory((p: ChatMessage[]) => [...p, { sender: "bot", text: t_auth, type: "text" as const }]), 1600);
                 setTimeout(() => {
                     const isRug = Math.random() > 0.8;
                     const verdict = isRug ? t.bot_report_conclusion_rug : t.bot_report_conclusion_safe;
                     const status = isRug ? t.bot_rug_alert : t.bot_safe_report;
 
                     const finalReport = `${t.bot_report_final}: ${status}\n${t.bot_report_adr}: ${addr.substring(0, 10)}...\n${t.bot_report_lp}: ${isRug ? t.bot_report_unlocked : t.bot_report_locked}\n${t.bot_report_renounced}: ${isRug ? t.bot_report_no : t.bot_report_yes}\n${t.bot_report_verdict}: ${verdict}`;
-                    setChatHistory((p: ChatMessage[]) => [...p, { sender: "bot", text: finalReport }]);
+                    setChatHistory((p: ChatMessage[]) => [...p, { sender: "bot", text: finalReport, type: "text" as const }]);
                 }, 2400);
 
                 return;
@@ -367,6 +365,22 @@ export function AIBot() {
             // PRIORITY 1: Tactical Commands
             if (lowerMsg.includes("precio") || lowerMsg.includes("price") || lowerMsg.includes("价格")) {
                 botReply = t.bot_price_reply;
+            } else if (lowerMsg.includes("visualize") || lowerMsg.includes("visualizar")) {
+                botReply = t.bot_visualizing;
+                setTimeout(() => {
+                    setChatHistory(p => [...p, {
+                        sender: "bot",
+                        text: "Neural Market Visualization // Live Data Fusion",
+                        type: "image",
+                        imagePath: "file:///C:/Users/Usuario/.gemini/antigravity/brain/49c0dd42-09f9-494b-a624-981b396e6445/vytronix_market_neural_visualization_1773166375846.png"
+                    }]);
+                    setIsThinking(false);
+                    playAudio("alert");
+                }, 2000);
+                return;
+            } else if (lowerMsg.includes("terminal") || lowerMsg.includes("modo_terminal")) {
+                setIsTerminalMode(!isTerminalMode);
+                botReply = !isTerminalMode ? t.bot_terminal_active : t.bot_terminal_deactive;
             } else if (lowerMsg === "whales" || lowerMsg === "ballenas" || lowerMsg === "ballena") {
                 botReply = t.bot_whale_reply.replace('{count}', networkFeed.length.toString());
             } else if (lowerMsg === "arbitrage" || lowerMsg === "arbitraje") {
@@ -388,7 +402,7 @@ export function AIBot() {
 
             setIsThinking(true);
             setTimeout(() => {
-                setChatHistory((prev: ChatMessage[]) => [...prev, { sender: "bot", text: botReply }]);
+                setChatHistory((prev: ChatMessage[]) => [...prev, { sender: "bot", text: botReply, type: "text" as const }]);
                 setIsThinking(false);
             }, 800 + complexityBonus);
 
@@ -429,7 +443,11 @@ export function AIBot() {
                                     <div className="text-[10px] flex items-center justify-between mt-1 -mb-1 w-full relative">
                                         {isGlitching && <div className="absolute inset-0 bg-[#00ff41]/20 -z-10 mix-blend-screen" />}
                                         <div className="flex items-center gap-2 opacity-80">
-                                            <div className={`w-2 h-2 rounded-full ${networkMode ? 'bg-[#00ff41] animate-pulse' : 'bg-red-500'}`} />
+                                            <div className="relative flex items-center justify-center w-2 h-2">
+                                                <span className={`animate-ping absolute inline-flex h-full w-full rounded-full opacity-75 ${marketSentiment > 70 ? 'bg-[#00ff41]' : marketSentiment > 40 ? 'bg-[#fffc20]' : 'bg-red-600'}`}
+                                                    style={{ animationDuration: `${Math.max(0.5, 2 - (marketSentiment / 50))}s` }}></span>
+                                                <span className={`relative inline-flex rounded-full h-2 w-2 ${marketSentiment > 70 ? 'bg-[#00ff41]' : marketSentiment > 40 ? 'bg-[#fffc20]' : 'bg-red-600'}`}></span>
+                                            </div>
                                             <span>EIP-8004 ID: <span className="font-mono text-[9px]">{agentAddress}</span></span>
                                         </div>
                                         <div className="flex items-center gap-1 bg-[#00ff41] text-black px-1 font-black px-1.5 rounded-sm">
@@ -439,6 +457,14 @@ export function AIBot() {
                                     </div>
                                 </div>
                                 <div className="flex gap-4 items-center">
+                                    <button
+                                        onClick={() => setIsAudioEnabled(!isAudioEnabled)}
+                                        title="Toggle Audio Feedback"
+                                        aria-label="Toggle Audio Feedback"
+                                        className={`transition-colors ${isAudioEnabled ? 'text-[#00ff41]' : 'text-zinc-500'}`}
+                                    >
+                                        <Activity size={16} className={isAudioEnabled ? 'animate-pulse' : ''} />
+                                    </button>
                                     <button
                                         onClick={handleClearChat}
                                         aria-label={t.bot_clear_chat}
@@ -479,19 +505,31 @@ export function AIBot() {
                             </div>
 
                             {/* Messages Area */}
-                            <div className="h-[380px] overflow-y-auto p-4 flex flex-col gap-4 bg-zinc-50 bg-[url('https://www.transparenttextures.com/patterns/carbon-fibre.png')]">
+                            <div className={`h-[380px] overflow-y-auto p-4 flex flex-col gap-4 font-mono transition-all duration-500
+                                ${isTerminalMode
+                                    ? 'bg-black bg-[linear-gradient(rgba(0,0,0,0.5)_50%,rgba(0,0,0,0)_50%),linear-gradient(90deg,rgba(0,255,0,0.1),rgba(255,0,0,0.1),rgba(0,0,255,0.1))] bg-[length:100%_2px,3px_100%] text-[#00ff41]'
+                                    : 'bg-zinc-50 bg-[url("https://www.transparenttextures.com/patterns/carbon-fibre.png")] text-black'}
+                            `}>
                                 {chatHistory.map((msg: ChatMessage, i: number) => (
                                     <div key={i} className={`flex w-full ${msg.sender === 'user' ? 'justify-end' : 'justify-start'}`}>
-                                        <div className={`p-3 border-2 border-black max-w-[85%] ${msg.sender === 'user'
-                                            ? 'bg-black text-white font-bold ml-4'
-                                            : 'bg-white text-black font-mono text-sm mr-4 shadow-[3px_3px_0_rgba(0,0,0,1)]'
+                                        <div className={`p-3 border-2 border-black max-w-[85%] transition-all
+                                            ${msg.sender === 'user'
+                                                ? (isTerminalMode ? 'bg-[#00ff41] text-black font-black' : 'bg-black text-white font-bold ml-4')
+                                                : (isTerminalMode ? 'bg-black border-[#00ff41] text-[#00ff41] shadow-[4px_4px_0_#00ff41]' : 'bg-white text-black font-mono text-sm mr-4 shadow-[3px_3px_0_rgba(0,0,0,1)]')
                                             }`}>
                                             {msg.sender === 'bot' && (
-                                                <div className="text-[10px] text-[#00ff41] bg-black inline-block px-1 mb-1 font-black uppercase">
+                                                <div className={`text-[10px] bg-black inline-block px-1 mb-1 font-black uppercase ${isTerminalMode ? 'text-[#00ff41]' : 'text-[#00ff41]'}`}>
                                                     AI_SYS
                                                 </div>
                                             )}
-                                            <p>{msg.text}</p>
+                                            {msg.type === "image" ? (
+                                                <div className="space-y-2">
+                                                    <img src={msg.imagePath} alt="Market Visualization" className="w-full border-2 border-black" />
+                                                    <p className="text-[10px] italic">{msg.text}</p>
+                                                </div>
+                                            ) : (
+                                                <p className={isTerminalMode ? "leading-tight" : ""}>{msg.text}</p>
+                                            )}
                                         </div>
                                     </div>
                                 ))}
@@ -550,69 +588,73 @@ export function AIBot() {
                             </div>
                         </motion.div>
                     )}
-                </AnimatePresence>
+                </AnimatePresence >
 
                 {/* --- Tooltip Suggestion --- */}
                 <AnimatePresence>
-                    {isTooltipVisible && !isChatOpen && isBotVisible && (
-                        <motion.div
-                            initial={{ opacity: 0, x: 20 }}
-                            animate={{ opacity: 1, x: 0 }}
-                            exit={{ opacity: 0, scale: 0.9 }}
-                            className="bg-white border-4 border-black p-3 shadow-[6px_6px_0_rgba(0,0,0,1)] relative max-w-[280px]"
-                        >
-                            <button
-                                onClick={() => setIsTooltipVisible(false)}
-                                aria-label={t.bot_close_suggestion}
-                                className="absolute -top-3 -right-3 w-6 h-6 bg-black text-white rounded-full flex items-center justify-center hover:bg-neutral-800 transition-colors border-2 border-black active:translate-x-0.5 active:translate-y-0.5 shadow-[2px_2px_0_rgba(0,0,0,1)] active:shadow-none"
+                    {
+                        isTooltipVisible && !isChatOpen && isBotVisible && (
+                            <motion.div
+                                initial={{ opacity: 0, x: 20 }}
+                                animate={{ opacity: 1, x: 0 }}
+                                exit={{ opacity: 0, scale: 0.9 }}
+                                className="bg-white border-4 border-black p-3 shadow-[6px_6px_0_rgba(0,0,0,1)] relative max-w-[280px]"
                             >
-                                <X size={14} />
-                            </button>
-                            <p className="font-mono text-xs leading-tight text-black flex items-start gap-2">
-                                <ArrowRight size={12} className="shrink-0 mt-0.5 text-[#00ff41]" />
-                                <span className="font-bold">{messageIndex === -1 ? dynamicAlert : aiSuggestions[messageIndex]}</span>
-                            </p>
-                        </motion.div>
-                    )}
-                </AnimatePresence>
+                                <button
+                                    onClick={() => setIsTooltipVisible(false)}
+                                    aria-label={t.bot_close_suggestion}
+                                    className="absolute -top-3 -right-3 w-6 h-6 bg-black text-white rounded-full flex items-center justify-center hover:bg-neutral-800 transition-colors border-2 border-black active:translate-x-0.5 active:translate-y-0.5 shadow-[2px_2px_0_rgba(0,0,0,1)] active:shadow-none"
+                                >
+                                    <X size={14} />
+                                </button>
+                                <p className="font-mono text-xs leading-tight text-black flex items-start gap-2">
+                                    <ArrowRight size={12} className="shrink-0 mt-0.5 text-[#00ff41]" />
+                                    <span className="font-bold">{messageIndex === -1 ? dynamicAlert : aiSuggestions[messageIndex]}</span>
+                                </p>
+                            </motion.div>
+                        )
+                    }
+                </AnimatePresence >
 
                 {/* --- Bot Avatar --- */}
                 <AnimatePresence>
-                    {isBotVisible && (
-                        <motion.div
-                            initial={{ scale: 0 }}
-                            animate={{ scale: 1 }}
-                            className="relative"
-                        >
-                            {/* Status Blip */}
-                            <div className="absolute -top-1 -right-1 w-3 h-3 bg-[#00ff41] rounded-full border-2 border-black animate-ping z-10" />
-                            <div className="absolute -top-1 -right-1 w-3 h-3 bg-[#00ff41] rounded-full border-2 border-black z-10" />
+                    {
+                        isBotVisible && (
+                            <motion.div
+                                initial={{ scale: 0 }}
+                                animate={{ scale: 1 }}
+                                className="relative"
+                            >
+                                {/* Status Blip */}
+                                <div className="absolute -top-1 -right-1 w-3 h-3 bg-[#00ff41] rounded-full border-2 border-black animate-ping z-10" />
+                                <div className="absolute -top-1 -right-1 w-3 h-3 bg-[#00ff41] rounded-full border-2 border-black z-10" />
 
-                            <button
-                                onPointerDown={(e) => dragControls.start(e)}
-                                onClick={() => {
-                                    setIsChatOpen(!isChatOpen);
-                                    setIsTooltipVisible(false);
-                                }}
-                                aria-label="Toggle AI Bot"
-                                className={`
+                                <button
+                                    onPointerDown={(e) => dragControls.start(e)}
+                                    onClick={() => {
+                                        setIsChatOpen(!isChatOpen);
+                                        setIsTooltipVisible(false);
+                                    }}
+                                    aria-label="Toggle AI Bot"
+                                    className={`
                                 relative w-16 h-16 border-4 border-black flex items-center justify-center shadow-[6px_6px_0_rgba(0,0,0,1)] 
                                 transition-all cursor-grab active:cursor-grabbing group overflow-hidden
                                 ${isChatOpen ? 'bg-[#00ff41] text-black translate-y-1 translate-x-1 shadow-[2px_2px_0_rgba(0,0,0,1)]' : 'bg-black text-white hover:bg-zinc-800'}
                             `}
-                            >
-                                {/* Visual Sniper Halo effect when network is on */}
-                                {networkMode && (
-                                    <div className={`absolute inset-0 border-2 border-[#00ff41] animate-ping opacity-30 pointer-events-none ${hyperActive ? '[animation-duration:0.6s]' : '[animation-duration:2.5s]'}`} />
-                                )}
+                                >
+                                    {/* Visual Sniper Halo effect when network is on */}
+                                    {networkMode && (
+                                        <div className={`absolute inset-0 border-2 border-[#00ff41] animate-ping opacity-30 pointer-events-none ${hyperActive ? '[animation-duration:0.6s]' : '[animation-duration:2.5s]'}`} />
+                                    )}
 
-                                {isChatOpen ? <MessageSquareText size={32} /> : <BrutalistRobot isActive={networkMode} tiltX={tiltX} tiltY={tiltY} />}
-                            </button>
-                        </motion.div>
-                    )}
-                </AnimatePresence>
+                                    {isChatOpen ? <MessageSquareText size={32} /> : <BrutalistRobot isActive={networkMode} tiltX={tiltX} tiltY={tiltY} />}
+                                </button>
+                            </motion.div>
+                        )
+                    }
+                </AnimatePresence >
 
-            </motion.div>
+            </motion.div >
             {/* Tactical Crosshair - Moved OUTSIDE the draggable container to restore absolute tracking */}
             {
                 networkMode && !isChatOpen && isBotVisible && (
