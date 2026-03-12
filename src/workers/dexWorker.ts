@@ -38,12 +38,13 @@ self.onmessage = async (e) => {
                 });
 
                 // Perform Background Arbitrage Detection
-                const arbOpportunities = calculateArbitrageOpportunities(allPools, executionParams);
+                const arbResult = calculateArbitrageOpportunities(allPools, executionParams);
 
                 self.postMessage({
                     type: 'DATA_FUSED',
                     pools: allPools,
-                    arbOpportunities,
+                    arbOpportunities: arbResult.opportunities,
+                    arbRejected: arbResult.rejected,
                     solMode: solResponse.mode,
                     bscMode: bscResponse.mode,
                     timestamp: Date.now()

@@ -16,14 +16,15 @@ export function GlobalEngine() {
         executionParams,
         smartMoneyActivity,
         kolSignals,
-        setMarketSentiment
+        setMarketSentiment,
+        addSystemLog
     } = useAppStore();
 
     const dexWorkerRef = useRef<Worker | null>(null);
     const kolWorkerRef = useRef<Worker | null>(null);
     const smWorkerRef = useRef<Worker | null>(null);
     const lastUnifiedBroadcastRef = useRef<Record<string, number>>({});
-    const lastArbBroadcastRef = useRef<Record<string, number>>({});
+    const lastArbBroadcastRef = useRef<Record<string, { time: number; profit: number }>>({});
     const lastSurgeBroadcastRef = useRef<Record<string, number>>({});
     const lastGlobalAlertTickRef = useRef<number>(0);
     const prevPoolsRef = useRef<Record<string, AethrixPool>>({});
@@ -43,21 +44,32 @@ export function GlobalEngine() {
             const { type, pools, arbOpportunities, solMode, bscMode, error } = e.data;
 
             if (type === 'DATA_FUSED') {
+                const { arbRejected } = e.data;
                 // Update Rankings
                 setGlobalRankings(pools.slice(0, 100));
 
                 // Update Stats
                 const maxAlphaScore = Math.max(...pools.map((p: AethrixPool) => p.score || 0));
-                const highConfidence = pools.filter((p: AethrixPool) => (((p.score || 0) / Math.max(1, maxAlphaScore)) * 100) > 75).length;
+                const highConfidenceCount = pools.filter((p: AethrixPool) => (((p.score || 0) / Math.max(1, maxAlphaScore)) * 100) > 75).length;
 
                 setAethrixStats({
                     activeSignals: pools.length,
-                    highConfidence,
+                    highConfidence: highConfidenceCount,
                     momentumSpikes: pools.filter((p: AethrixPool) => (p.priceChange5m || 0) > 25).length,
                     apiMode: (solMode === "Live" || bscMode === "Live") ? "Live" : "Error",
                     scanningChain: "GLOBAL",
                     autoRefresh: true
                 });
+
+                // Log internal rejections to system history (Internal Audit)
+                if (arbRejected && arbRejected.length > 0) {
+                    arbRejected.forEach((rej: { token: string; reason: string; profit: number }) => {
+                        // Only log high-potential rejections to avoid spamming system logs
+                        if (rej.profit > 0.5 || rej.reason === "HIGH_SLIPPAGE") {
+                            addSystemLog(`ARB_REJECTED: ${rej.token} @ ${rej.reason} (Est: ${rej.profit}%)`, "info");
+                        }
+                    });
+                }
 
                 // Arbitrage Verification & Telegram Broadcasting
                 if (arbOpportunities && arbOpportunities.length > 0) {
@@ -65,25 +77,37 @@ export function GlobalEngine() {
 
                     arbOpportunities.forEach((arb: RealArbitrageOpportunity) => {
                         const now = Date.now();
-                        const lastBroadcast = lastArbBroadcastRef.current[arb.id] || 0;
+                        const lastBroadcast = lastArbBroadcastRef.current[arb.token] || { time: 0, profit: 0 };
 
-                        // Threshold Gate (Already filtered by worker, but double checks here for safety)
-                        if (arb.profit > 1.0 && (now - lastBroadcast > 600000)) { // 10 min cooldown per arb path
+                        // 15-minute strict cooldown (900,000 ms)
+                        // EXCEPTION: Signal can re-fire if profit improves by more than 20% relative (e.g. 1% -> 1.2%)
+                        const timeDiff = now - lastBroadcast.time;
+                        const isProfitExplosion = arb.profit > (lastBroadcast.profit * 1.2);
+                        const isCooldownOver = timeDiff > 900000;
+
+                        if (arb.profit >= 1.0 && (isCooldownOver || isProfitExplosion)) {
                             if (sendTelegramMessage) {
-                                const threatLevel = arb.profit > 5 ? "🔴 CRITICAL" : arb.profit > 3 ? "🟠 HIGH" : "🟢 STABLE";
-                                const tgMsg = `🤖 *VYTRONIX SENTINEL: ARBITRAGE DETECTED*\n` +
-                                    `━━━━━━━━━━━━━━━━━━━━\n` +
-                                    `💰 *PROFIT: +${arb.profit}% ROI*\n` +
-                                    `💎 Asset: *${arb.token}*\n` +
-                                    `⚠️ Threat: *${threatLevel}*\n\n` +
-                                    `⚡ Size: *$${arb.simulatedSize}*\n` +
-                                    `🌊 Source: \`${arb.buyExchange}\` (${arb.buyChain})\n` +
-                                    `🚀 Target: \`${arb.sellExchange}\` (${arb.sellChain})\n` +
-                                    `━━━━━━━━━━━━━━━━━━━━\n` +
-                                    `🤖 _"Neural logic confirms executable arbitrage. Tactical strike authorized."_`;
+                                // Calculate metrics for message
+                                const fees = (arb.simulatedSize * 0.006).toFixed(2);
+                                
+                                const tgMsg = 
+                                    `🟢 *VYTRONIX VERIFIED ARBITRAGE*\n\n` +
+                                    `💠 Token: *${arb.token}*\n` +
+                                    `🛒 Buy: \`${arb.buyExchange}\` — *$${arb.buyPrice.toFixed(6)}*\n` +
+                                    `💸 Sell: \`${arb.sellExchange}\` — *$${arb.sellPrice.toFixed(6)}*\n\n` +
+                                    `💧 Liquidity: *$${(arb.liquidityLevel / 1000).toFixed(1)}K*\n` +
+                                    `📦 Trade Size: *$${arb.simulatedSize}*\n` +
+                                    `📉 Slippage: *<${((arb.simulatedSize / (arb.liquidityLevel / 2)) * 100).toFixed(2)}%*\n` +
+                                    `🧾 Fees: *$${fees}*\n` +
+                                    `📈 Net Profit: *+${arb.profit}%*\n\n` +
+                                    `⏱ Window: *LIVE*\n` +
+                                    `🔒 Status: *EXECUTABLE*\n` +
+                                    `⚡ Source: *Vytronix Engine*`;
 
                                 sendTelegramMessage(tgMsg, "https://vytronix.io/vytronix-bot.jpg");
-                                lastArbBroadcastRef.current[arb.id] = now;
+                                lastArbBroadcastRef.current[arb.token] = { time: now, profit: arb.profit };
+                                
+                                addSystemLog(`VERIFIED_ARB: ${arb.token} (+${arb.profit}%) Dispatched to Telegram`, "success");
                             }
                         }
                     });
@@ -236,7 +260,7 @@ export function GlobalEngine() {
             kolWorker.terminate();
             smWorker.terminate();
         };
-    }, [addAlert, addFeedEvent, addKOLSignal, alertsEnabled, sendTelegramMessage, setAethrixStats, setArbitrageOpportunities, setGlobalRankings, setMarketSentiment]);
+    }, [addAlert, addFeedEvent, addKOLSignal, addSystemLog, alertsEnabled, sendTelegramMessage, setAethrixStats, setArbitrageOpportunities, setGlobalRankings, setMarketSentiment]);
 
     // Sync KOL worker with current market rankings
     useEffect(() => {
