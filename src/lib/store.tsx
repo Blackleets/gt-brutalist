@@ -242,6 +242,7 @@ export interface AppState {
     setTelegramConfig: (token: string, chatId: string, topicId: string) => void;
     toggleTelegram: (enabled: boolean) => void;
     sendTelegramMessage: (message: string, photoUrl?: string, inlineButtons?: TelegramInlineButton[][], overrides?: { token?: string; chatId?: string; topicId?: string }) => Promise<void>;
+    sendTelegramAlert: (message: string, chatId: string, topicId: number | string) => Promise<void>;
     executedArbs: ExecutedArb[];
     addExecutedArb: (arb: ExecutedArb) => void;
     authorizedWallets: string[];
@@ -931,6 +932,10 @@ export function AppProvider({ children }: { children: ReactNode }) {
         }
     }, [telegramEnabled, telegramToken, telegramChatId, telegramTopicId, addSystemLog]);
 
+    const sendTelegramAlert = useCallback(async (message: string, chatId: string, topicId: number | string) => {
+        return sendTelegramMessage(message, undefined, undefined, { chatId, topicId: topicId.toString() });
+    }, [sendTelegramMessage]);
+
     useEffect(() => {
         const fetchPrices = async () => {
             try {
@@ -1357,6 +1362,7 @@ export function AppProvider({ children }: { children: ReactNode }) {
         setTelegramConfig,
         toggleTelegram,
         sendTelegramMessage,
+        sendTelegramAlert,
         executedArbs,
         addExecutedArb,
         authorizedWallets,
@@ -1386,7 +1392,7 @@ export function AppProvider({ children }: { children: ReactNode }) {
         refreshWalletTokens, toggleWatchlist, recordSnapshot, removeSnapshot, addSmartWallet,
         removeSmartWallet, refreshSmartMoneyActivity, setBscScanKey, setNetworkMode,
         setGlobalRankingsStable, addFeedEvent, addSystemLog, triggerGlobalSync, addPlatformFee,
-        setTelegramConfig, toggleTelegram, sendTelegramMessage, addExecutedArb,
+        setTelegramConfig, toggleTelegram, sendTelegramMessage, sendTelegramAlert, addExecutedArb,
         setArbitrageOpportunitiesStable, setPrefilledSwapStable,
         authorizedWallets, addAuthorizedWallet, removeAuthorizedWallet,
         adminConfig, setAdminConfig,

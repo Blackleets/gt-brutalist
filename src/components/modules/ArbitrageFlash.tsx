@@ -25,6 +25,7 @@ export function ArbitrageFlash() {
         telegramChatId = "",
         toggleTelegram,
         setTelegramConfig,
+        sendTelegramAlert,
         wallet = { connected: false, address: "", chain: "SOL" },
         ownerAddresses = [],
         executedArbs = [],
@@ -45,6 +46,20 @@ export function ArbitrageFlash() {
 
     const handleExecute = (op: RealArbitrageOpportunity) => {
         if (!op || !op.token) return;
+
+        // Tactical Alert Broadcast (Fixed/Added per requirements)
+        if (sendTelegramAlert) {
+            const message = `🚀 *VYTRONIX ARBITRAGE SIGNAL*\n` +
+                          `💎 Asset: *${op.token}*\n` +
+                          `📈 Net Profit: *+${op.profit}%*\n` +
+                          `🛒 Path: \`${op.path}\`\n\n` +
+                          `⚡ Source: Vytronix Engine`;
+            sendTelegramAlert(
+                message,
+                "-1003864053759",
+                55
+            );
+        }
 
         // Tactical Sound Effect
         try {
@@ -117,7 +132,7 @@ export function ArbitrageFlash() {
                                 type="text"
                                 placeholder="TELEGRAM_CHAT_ID"
                                 value={telegramChatId}
-                                onChange={(e) => setTelegramConfig && setTelegramConfig("8759026886:AAHQRt0Qf-UR0uWQ4kyMwgeegjULIhwjlC0", e.target.value)}
+                                onChange={(e) => setTelegramConfig && setTelegramConfig("8759026886:AAHQRt0Qf-UR0uWQ4kyMwgeegjULIhwjlC0", e.target.value, "55")}
                                 className="bg-white border-4 border-black px-3 py-2 text-[10px] font-black uppercase tracking-widest focus:outline-none focus:bg-[#00ff41] transition-colors w-full md:w-32"
                             />
                             <button
