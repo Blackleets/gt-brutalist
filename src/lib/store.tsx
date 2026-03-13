@@ -128,6 +128,8 @@ export interface ExecutedArb {
     dexFrom: string;
     dexTo: string;
     timestamp: number;
+    hash: string;
+    sizeUsd: number;
 }
 
 export interface KOLSignal {
@@ -142,6 +144,32 @@ export interface KOLSignal {
     isConfirmation: boolean;
     tweetText?: string;
     tweetUrl?: string;
+}
+
+export interface Hunter {
+    address: string;
+    alias: string;
+    score: number;
+    trades: number;
+    avgProfit: number;
+    consistency: number;
+    speed: string;
+    tier: "Hunter" | "Elite Hunter" | "High Frequency Hunter";
+    lastActive: number;
+}
+
+export interface HunterSignal {
+    id: string;
+    hunter: string;
+    tier: string;
+    token: string;
+    buyDex: string;
+    sellDex: string;
+    sizeUsd: number;
+    profitUsd: number;
+    profitPct: number;
+    timestamp: number;
+    hash: string;
 }
 
 export interface ChatMessage {
@@ -207,7 +235,7 @@ export interface AppState {
     telegramChatId: string;
     telegramEnabled: boolean;
     arbitrageOpportunities: RealArbitrageOpportunity[];
-    setArbitrageOpportunities: (ops: RealArbitrageOpportunity[]) => void;
+    setArbitrageOpportunities: (ops: RealArbitrageOpportunity[] | ((prev: RealArbitrageOpportunity[]) => RealArbitrageOpportunity[])) => void;
     prefilledSwap: { fromSymbol: string; toSymbol: string; amount?: number } | null;
     setPrefilledSwap: (swap: { fromSymbol: string; toSymbol: string; amount?: number } | null) => void;
     setTelegramConfig: (token: string, chatId: string) => void;
@@ -256,6 +284,11 @@ export interface AppState {
         rpcNode: "PUBLIC" | "PRIVATE" | "VYTRONIX_ELITE";
     };
     setExecutionParams: (params: Partial<AppState["executionParams"]>) => void;
+
+    hunters: Hunter[];
+    setHunters: (hunters: Hunter[] | ((prev: Hunter[]) => Hunter[])) => void;
+    hunterSignals: HunterSignal[];
+    addHunterSignal: (signal: HunterSignal) => void;
 }
 
 const AppContext = createContext<AppState | undefined>(undefined);
@@ -947,6 +980,23 @@ export function AppProvider({ children }: { children: ReactNode }) {
     const [smartMoneyActivity, setSmartMoneyActivity] = useState<Record<string, SmartActivity>>({});
     const lastSmartRefreshRef = useRef<number>(0);
 
+    const [hunters, setHunters] = useState<Hunter[]>(() => {
+        try {
+            const stored = localStorage.getItem("vytronix_hunters");
+            if (stored) return JSON.parse(stored);
+        } catch { void 0; }
+        return [
+            { address: "0x2638f29A21", alias: "SHARK_01", score: 98, trades: 142, avgProfit: 12.5, consistency: 94, speed: "0.4s", tier: "High Frequency Hunter", lastActive: Date.now() },
+            { address: "0x7F217b11B9", alias: "ARB_KING", score: 85, trades: 84, avgProfit: 8.2, consistency: 78, speed: "1.2s", tier: "Elite Hunter", lastActive: Date.now() - 3600000 }
+        ];
+    });
+
+    const [hunterSignals, setHunterSignals] = useState<HunterSignal[]>([]);
+
+    const addHunterSignal = useCallback((signal: HunterSignal) => {
+        setHunterSignals(prev => [signal, ...prev].slice(0, 50));
+    }, []);
+
     const setBscScanKey = useCallback((key: string) => {
         setBscScanKeyState(key);
         localStorage.setItem("vytronix_bscscan_key", key);
@@ -1191,8 +1241,12 @@ export function AppProvider({ children }: { children: ReactNode }) {
         setGlobalRankings(rankings);
     }, []);
 
-    const setArbitrageOpportunitiesStable = useCallback((ops: RealArbitrageOpportunity[]) => {
+    const setArbitrageOpportunitiesStable = useCallback((ops: RealArbitrageOpportunity[] | ((prev: RealArbitrageOpportunity[]) => RealArbitrageOpportunity[])) => {
         setArbitrageOpportunities(ops);
+    }, []);
+
+    const setHuntersStable = useCallback((h: Hunter[] | ((prev: Hunter[]) => Hunter[])) => {
+        setHunters(h);
     }, []);
 
     const setPrefilledSwapStable = useCallback((swap: { fromSymbol: string; toSymbol: string; amount?: number } | null) => {
@@ -1306,12 +1360,15 @@ export function AppProvider({ children }: { children: ReactNode }) {
         kolSignals, addKOLSignal,
         chatMessages, addChatMessage,
         executionParams, setExecutionParams,
-        marketSentiment, setMarketSentiment
+        marketSentiment, setMarketSentiment,
+        hunters, setHunters: setHuntersStable,
+        hunterSignals, addHunterSignal
     }), [
         selectedChain, activeRpcPerChain, activeEnvPerChain, apiKey, wallet, aethrixStats, latency, rpcHealth,
         alertsEnabled, activeAlerts, watchlist, positionSnapshots, smartWallets, bscScanKey, smartMoneyActivity,
         networkMode, globalRankings, nativePrices, networkFeed, systemLogs, platformRevenue, telegramToken,
         telegramChatId, telegramEnabled, arbitrageOpportunities, prefilledSwap, executedArbs,
+        hunters, hunterSignals,
         setSelectedChain, setActiveRpc, setActiveEnv, setApiKey, connectWallet, disconnectWallet,
         refreshWalletHistory, executeSwap, setAethrixStats, setAlertsEnabled, addAlert, removeAlert,
         refreshWalletTokens, toggleWatchlist, recordSnapshot, removeSnapshot, addSmartWallet,
@@ -1327,7 +1384,8 @@ export function AppProvider({ children }: { children: ReactNode }) {
         kolSignals, addKOLSignal,
         chatMessages, addChatMessage,
         executionParams, setExecutionParams,
-        marketSentiment, setMarketSentiment
+        marketSentiment, setMarketSentiment,
+        addHunterSignal, setHuntersStable
     ]);
 
     return (

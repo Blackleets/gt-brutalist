@@ -444,8 +444,7 @@ export function AIBot() {
                                         {isGlitching && <div className="absolute inset-0 bg-[#00ff41]/20 -z-10 mix-blend-screen" />}
                                         <div className="flex items-center gap-2 opacity-80">
                                             <div className="relative flex items-center justify-center w-2 h-2">
-                                                <span className={`animate-ping absolute inline-flex h-full w-full rounded-full opacity-75 ${marketSentiment > 70 ? 'bg-[#00ff41]' : marketSentiment > 40 ? 'bg-[#fffc20]' : 'bg-red-600'}`}
-                                                    style={{ animationDuration: `${Math.max(0.5, 2 - (marketSentiment / 50))}s` }}></span>
+                                                <span className={`animate-ping absolute inline-flex h-full w-full rounded-full opacity-75 ${marketSentiment > 85 ? 'neural-ping-pulse-ultra' : marketSentiment > 60 ? 'neural-ping-pulse-fast' : 'neural-ping-pulse-normal'} ${marketSentiment > 70 ? 'bg-[#00ff41]' : marketSentiment > 40 ? 'bg-[#fffc20]' : 'bg-red-600'}`}></span>
                                                 <span className={`relative inline-flex rounded-full h-2 w-2 ${marketSentiment > 70 ? 'bg-[#00ff41]' : marketSentiment > 40 ? 'bg-[#fffc20]' : 'bg-red-600'}`}></span>
                                             </div>
                                             <span>EIP-8004 ID: <span className="font-mono text-[9px]">{agentAddress}</span></span>

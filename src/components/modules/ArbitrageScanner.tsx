@@ -166,7 +166,7 @@ export function ArbitrageScanner() {
                                             setExecutingId(opp.id);
                                             try {
                                                 if (!wallet.isWatchOnly && (wallet.providerType === "solana" || wallet.providerType === "evm" || wallet.providerType === "metamask" || wallet.providerType === "binance" || wallet.providerType === "solflare" || wallet.providerType === "walletconnect" || wallet.providerType === "okx")) {
-                                                    await executeSwap({
+                                                    const hash = await executeSwap({
                                                         fromToken: opp.buyChain === "SOLANA" ? "SOL" : "BNB",
                                                         toToken: opp.token,
                                                         fromAmount: 0.5,
@@ -182,7 +182,9 @@ export function ArbitrageScanner() {
                                                         spread: opp.profit,
                                                         dexFrom: opp.buyExchange,
                                                         dexTo: opp.sellExchange,
-                                                        timestamp: Date.now()
+                                                        timestamp: Date.now(),
+                                                        hash: hash,
+                                                        sizeUsd: 0.5 * (opp.buyChain === "SOLANA" ? 145 : 600)
                                                     });
                                                 } else {
                                                     await new Promise(r => setTimeout(r, 1200));

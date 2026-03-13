@@ -166,8 +166,27 @@ input[type="number"]::-webkit-outer-spin-button {
   background: #00ff41;
 }
 
-/* Standard properties for modern browsers */
-* {
-  scrollbar-width: thin;
-  scrollbar-color: #000000 #ffffff;
+/* Standard properties for modern browsers with feature detection */
+@supports (scrollbar-width: thin) {
+  html {
+    scrollbar-width: thin;
+    scrollbar-color: #000000 #ffffff;
+  }
+}
+
+/* Neural Signal Speed Support */
+.neural-ping-pulse-ultra {
+  animation-duration: 0.6s !important;
+}
+
+.neural-ping-pulse-fast {
+  animation-duration: 1.2s !important;
+}
+
+.neural-ping-pulse-normal {
+  animation-duration: 2s !important;
+}
+
+.neural-ping-signal {
+  animation-duration: var(--ping-speed, 1s) !important;
 }

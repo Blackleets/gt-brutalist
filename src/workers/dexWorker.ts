@@ -46,6 +46,8 @@ self.onmessage = async (e) => {
                     arbOpportunities: arbResult.opportunities,
                     arbRejected: arbResult.rejected,
                     arbWatchlist: arbResult.watchlist,
+                    arbRealProfits: arbResult.realProfits,
+                    arbHunterSignals: arbResult.hunterSignals,
                     solMode: solResponse.mode,
                     bscMode: bscResponse.mode,
                     timestamp: Date.now()

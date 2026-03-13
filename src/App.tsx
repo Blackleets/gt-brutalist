@@ -20,6 +20,7 @@ import { AIBot } from "@/components/modules/AIBot";
 import { translations } from "@/lib/translations";
 import { SocialIntelligenceHub } from "@/components/modules/SocialIntelligenceHub";
 import { WhitepaperV3 } from "@/components/modules/WhitepaperV3";
+import { HunterTracker } from "@/components/modules/HunterTracker";
 
 export default function App() {
   return (
@@ -84,6 +85,8 @@ function AppContent() {
         )}
 
         {activeViewId === "WHITEPAPER_V3" && <WhitepaperV3 />}
+
+        {activeViewId === "HUNTER_TRACKER" && <HunterTracker />}
 
         {/* CTA */}
         <section className="px-4 md:px-16 py-12 md:py-20 relative z-10">
