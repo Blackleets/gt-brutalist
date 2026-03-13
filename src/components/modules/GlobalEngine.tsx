@@ -33,10 +33,17 @@ export function GlobalEngine() {
     const lastArbBroadcastRef = useRef<Record<string, { time: number; profit: number }>>({});
     const processedHunterHashesRef = useRef<Set<string>>(new Set());
     const prevPoolsRef = useRef<Record<string, AethrixPool>>({});
-    const lastHunterTelegramRef = useRef<number>(0);
+    const lastGlobalBroadcastRef = useRef<number>(0);
     const kolSignalsRef = useRef(kolSignals);
     const sentimentRef = useRef<number>(50);
     const adminConfigRef = useRef(adminConfig);
+
+    // Reset global cooldown when telegram is enabled to ensure immediate transmission of the first signal
+    useEffect(() => {
+        if (telegramEnabled) {
+            lastGlobalBroadcastRef.current = 0;
+        }
+    }, [telegramEnabled]);
 
     // Update refs when store changes
     useEffect(() => {
@@ -92,14 +99,17 @@ export function GlobalEngine() {
                         const lastBroadcast = lastArbBroadcastRef.current[arb.token] || { time: 0, profit: 0 };
 
                         const timeDiff = now - lastBroadcast.time;
+                        const globalTimeDiff = now - lastGlobalBroadcastRef.current;
+                        
                         const isProfitExplosion = arb.profit > (lastBroadcast.profit * 1.2);
-                        const isCooldownOver = timeDiff > (adminConfigRef.current.signalInterval * 1000);
+                        // Global cooldown ensures no spam across the group, while token-specific cooldown (min 15m) keeps diversity
+                        const isGlobalCooldownOver = globalTimeDiff > (adminConfigRef.current.signalInterval * 1000);
+                        const isTokenCooldownOver = timeDiff > 900000; 
+
                         const isFresh = (now - (e.data.timestamp || 0)) < 30000;
 
-                        if (arb.profit >= 1.0 && (isCooldownOver || isProfitExplosion) && isFresh && arb.classification === "VERIFIED") {
+                        if (arb.profit >= 1.0 && (isGlobalCooldownOver || isProfitExplosion) && isTokenCooldownOver && isFresh && arb.classification === "VERIFIED") {
                             if (sendTelegramMessage && PUB_BROADCAST_ENABLED && telegramEnabled) {
-                                // Removed fees calculation as it's not in the new format
-                                
                                 const tgMsg = 
                                     `⚡ VYTRONIX ARBITRAGE OPPORTUNITY\n` +
                                     `━━━━━━━━━━━━━━━━\n\n` +
@@ -114,6 +124,7 @@ export function GlobalEngine() {
 
                                 sendTelegramMessage(tgMsg, "https://vytronix.io/vytronix-bot.jpg");
                                 lastArbBroadcastRef.current[arb.token] = { time: now, profit: arb.profit };
+                                lastGlobalBroadcastRef.current = now;
                                 addSystemLog(`VERIFIED_ARB: ${arb.token} (+${arb.profit}%) Dispatched to Telegram`, "success");
                             }
                         }
@@ -129,9 +140,9 @@ export function GlobalEngine() {
                             addHunterSignal(sig);
 
                             // PROFIT_DETECTED_SIGNAL: Real executed trades observed on-chain
-                            // Policy: Use global signal interval to avoid spam
+                            // Policy: Respect global broadcast interval
                             const now = Date.now();
-                            if (telegramEnabled && (now - lastHunterTelegramRef.current > (adminConfigRef.current.signalInterval * 1000))) {
+                            if (telegramEnabled && (now - lastGlobalBroadcastRef.current > (adminConfigRef.current.signalInterval * 1000))) {
                                 const partialAddr = `${sig.hunter.substring(0, 6)}...${sig.hunter.slice(-4)}`;
                                 const explorerLink = sig.hunter.startsWith('0x') 
                                     ? `https://bscscan.com/tx/${sig.hash}` 
@@ -152,7 +163,7 @@ export function GlobalEngine() {
                                     `⚡ Detected by Vytronix Engine`;
 
                                 sendTelegramMessage(profitMsg, "https://vytronix.io/vytronix-bot.jpg");
-                                lastHunterTelegramRef.current = now;
+                                lastGlobalBroadcastRef.current = now;
                                 addSystemLog(`PROFIT_DETECTED_SIGNAL: ${sig.token} capture by ${partialAddr} broadcasted`, "success");
                             }
 
@@ -201,7 +212,7 @@ export function GlobalEngine() {
                             
                             // Emit PROFIT_DETECTED_SIGNAL for validated real trades
                             const now = Date.now();
-                            if (sendTelegramMessage && telegramEnabled && (now - lastHunterTelegramRef.current > (adminConfigRef.current.signalInterval * 1000))) {
+                            if (sendTelegramMessage && telegramEnabled && (now - lastGlobalBroadcastRef.current > (adminConfigRef.current.signalInterval * 1000))) {
                                 const partialAddr = `${profit.wallet.substring(0, 6)}...${profit.wallet.substring(profit.wallet.length - 4)}`;
                                 const explorerLink = profit.wallet.startsWith('0x') 
                                     ? `https://bscscan.com/tx/${profit.hash}` 
@@ -222,7 +233,7 @@ export function GlobalEngine() {
                                     `⚡ Detected by Vytronix Engine`;
 
                                 sendTelegramMessage(profitMsg, "https://vytronix.io/vytronix-bot.jpg");
-                                lastHunterTelegramRef.current = now;
+                                lastGlobalBroadcastRef.current = now;
                                 addSystemLog(`PROFIT_DETECTED_SIGNAL: ${profit.token} captured by ${partialAddr} broadcasted`, "success");
                             }
                         }
