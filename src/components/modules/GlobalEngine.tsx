@@ -71,7 +71,9 @@ export function GlobalEngine() {
 
                 // Arbitrage Verification & Telegram Broadcasting (SAFE MODE ACTIVE)
                 if (arbOpportunities && arbOpportunities.length > 0) {
-                    setArbitrageOpportunities([...arbOpportunities, ...(arbWatchlist || [])]);
+                    // Limit dashboard to top 3 verified + watchlist
+                    const dashboardEntries = [...arbOpportunities.slice(0, 3), ...(arbWatchlist || []).slice(0, 2)];
+                    setArbitrageOpportunities(dashboardEntries);
 
                     // PUBLIC BROADCASTING SAFETY GATE
                     // Set to true to allow ONLY verified executable signals
@@ -87,8 +89,8 @@ export function GlobalEngine() {
                         const isProfitExplosion = arb.profit > (lastBroadcast.profit * 1.2);
                         const isCooldownOver = timeDiff > 900000;
 
-                        // STALENESS PROTECTION: Only process fresh signals (less than 60s)
-                        const isFresh = (now - (e.data.timestamp || 0)) < 60000;
+                        // STALENESS PROTECTION: Only process fresh signals (less than 30s)
+                        const isFresh = (now - (e.data.timestamp || 0)) < 30000;
 
                         if (arb.profit >= 1.0 && (isCooldownOver || isProfitExplosion) && isFresh && arb.classification === "VERIFIED") {
                             if (sendTelegramMessage && PUB_BROADCAST_ENABLED) {

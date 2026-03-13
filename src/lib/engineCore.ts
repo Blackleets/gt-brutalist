@@ -195,42 +195,54 @@ export function calculateArbitrageOpportunities(
             return;
         }
 
-        // 5. Strict Slippage Simulation (Brutally Conservative Threshold: 5%)
-        const buySlippage = SIMULATED_TRADE_SIZE / (minPool.liquidityUsd / 2);
-        const sellSlippage = SIMULATED_TRADE_SIZE / (maxPool.liquidityUsd / 2);
+        // 5. Multi-Size Executable Quote Validation ($250, $500, $1000)
+        // A signal is ONLY verified if it remains profitable at all three sizes.
+        const VALIDATION_SIZES = [250, 500, 1000];
+        let passesAllSizes = true;
+        let finalNetProfitROI = 0;
+        let finalNetProfitUsd = 0;
+        let finalExecutionBuyPrice = 0;
+        let finalExecutionSellPrice = 0;
 
-        if (buySlippage > 0.05 || sellSlippage > 0.05) { 
+        for (const size of VALIDATION_SIZES) {
+            const bSlippage = size / (minPool.liquidityUsd / 2);
+            const sSlippage = size / (maxPool.liquidityUsd / 2);
+            
+            if (bSlippage > 0.05 || sSlippage > 0.05) {
+                passesAllSizes = false;
+                break;
+            }
+
+            const eBuyPrice = minPool.priceUsd * (1 + bSlippage);
+            const eSellPrice = maxPool.priceUsd * (1 - sSlippage);
+            const bribeFactor = executionParams.bribePriority === "ULTRA" ? 5 : executionParams.bribePriority === "HIGH" ? 2 : 1;
+            const nFeeUsd = minPool.chain === "solana" ? (0.01 * bribeFactor) : (0.40 * bribeFactor);
+
+            const tBought = size / eBuyPrice;
+            const gSellOutput = tBought * eSellPrice;
+            const sFeesUsd = (size * 0.003) + (gSellOutput * 0.003);
+            const nProfitUsd = (gSellOutput - size) - sFeesUsd - nFeeUsd;
+            const nProfitROI = (nProfitUsd / size) * 100;
+
+            if (nProfitROI < MIN_NET_ROI) {
+                passesAllSizes = false;
+                break;
+            }
+
+            if (size === 1000) {
+                finalNetProfitROI = nProfitROI;
+                finalNetProfitUsd = nProfitUsd;
+                finalExecutionBuyPrice = eBuyPrice;
+                finalExecutionSellPrice = eSellPrice;
+            }
+        }
+
+        if (!passesAllSizes) {
             rejected.push({
                 id: arbId,
                 token: minPool.baseToken.symbol,
                 reason: "excessive_slippage",
                 profit: spread,
-                liquidity: minPool.liquidityUsd,
-                timestamp: Date.now()
-            });
-            return;
-        }
-
-        const executionBuyPrice = minPool.priceUsd * (1 + buySlippage);
-        const executionSellPrice = maxPool.priceUsd * (1 - sellSlippage);
-
-        // 6. Fee Deduction
-        const bribeFactor = executionParams.bribePriority === "ULTRA" ? 5 : executionParams.bribePriority === "HIGH" ? 2 : 1;
-        const networkFeeUsd = minPool.chain === "solana" ? (0.01 * bribeFactor) : (0.40 * bribeFactor);
-
-        const tokensBought = SIMULATED_TRADE_SIZE / executionBuyPrice;
-        const grossSellOutput = tokensBought * executionSellPrice;
-        const swapFeesUsd = (SIMULATED_TRADE_SIZE * 0.003) + (grossSellOutput * 0.003);
-        const netProfitUsd = (grossSellOutput - SIMULATED_TRADE_SIZE) - swapFeesUsd - networkFeeUsd;
-        const netProfitROI = (netProfitUsd / SIMULATED_TRADE_SIZE) * 100;
-
-        // 7. Verification Gate
-        if (netProfitROI < MIN_NET_ROI) {
-            rejected.push({
-                id: arbId,
-                token: minPool.baseToken.symbol,
-                reason: netProfitROI < 0 ? "fee_impact_too_high" : "insufficient_net_profit",
-                profit: netProfitROI,
                 liquidity: minPool.liquidityUsd,
                 timestamp: Date.now()
             });
@@ -245,17 +257,17 @@ export function calculateArbitrageOpportunities(
             path: `${minPool.dex} ➔ ${maxPool.dex}`,
             buyExchange: minPool.dex,
             sellExchange: maxPool.dex,
-            buyPrice: executionBuyPrice,
-            sellPrice: executionSellPrice,
+            buyPrice: finalExecutionBuyPrice,
+            sellPrice: finalExecutionSellPrice,
             buyChain: minPool.chain.toUpperCase(),
             sellChain: maxPool.chain.toUpperCase(),
-            profit: Number(netProfitROI.toFixed(4)),
-            estimatedProfitUtic: Number(netProfitUsd.toFixed(2)),
-            simulatedSize: SIMULATED_TRADE_SIZE,
+            profit: Number(finalNetProfitROI.toFixed(4)),
+            estimatedProfitUtic: Number(finalNetProfitUsd.toFixed(2)),
+            simulatedSize: 1000,
             liquidityLevel: Math.floor(Math.min(minPool.liquidityUsd, maxPool.liquidityUsd)),
-            netProfitAfterFees: Number(netProfitUsd.toFixed(2)),
+            netProfitAfterFees: Number(finalNetProfitUsd.toFixed(2)),
             timeLeft: 30,
-            confidence: netProfitROI > 5 ? "HIGH" : "MEDIUM",
+            confidence: finalNetProfitROI > 5 ? "HIGH" : "MEDIUM",
             status: "ACTIVE",
             classification: "VERIFIED"
         });
