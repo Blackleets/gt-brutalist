@@ -1,5 +1,6 @@
 import { motion } from "framer-motion";
 import { Twitter, Send, Globe } from "lucide-react";
+import { Analytics } from "@vercel/analytics/react";
 import { AppProvider, useAppStore } from "@/lib/store";
 import { Hero } from "@/components/modules/Hero";
 import { Header } from "@/components/modules/Header";
@@ -25,6 +26,7 @@ export default function App() {
   return (
     <AppProvider>
       <AppContent />
+      <Analytics />
     </AppProvider>
   );
 }
