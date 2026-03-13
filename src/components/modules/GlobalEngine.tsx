@@ -96,7 +96,8 @@ export function GlobalEngine() {
                                 const fees = (arb.simulatedSize * 0.006).toFixed(2);
                                 
                                 const tgMsg = 
-                                    `🟢 *VYTRONIX VERIFIED ARBITRAGE*\n\n` +
+                                    `🟢 *VYTRONIX VERIFIED ARBITRAGE*\n` +
+                                    `*Strict Validation Applied*\n\n` +
                                     `💠 Token: *${arb.token}*\n` +
                                     `🛒 Buy: \`${arb.buyExchange}\` — *$${arb.buyPrice.toFixed(6)}*\n` +
                                     `💸 Sell: \`${arb.sellExchange}\` — *$${arb.sellPrice.toFixed(6)}*\n\n` +
@@ -106,7 +107,7 @@ export function GlobalEngine() {
                                     `🧾 Fees: *$${fees}*\n` +
                                     `📈 Net Profit: *+${arb.profit}%*\n\n` +
                                     `⏱ Window: *LIVE*\n` +
-                                    `🔒 Status: *EXECUTABLE*\n` +
+                                    `🔒 Status: *VERIFIED EXECUTION*\n` +
                                     `⚡ Source: *Vytronix Engine*`;
 
                                 sendTelegramMessage(tgMsg, "https://vytronix.io/vytronix-bot.jpg");

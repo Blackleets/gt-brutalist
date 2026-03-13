@@ -59,7 +59,7 @@ export interface ArbitrageEngineResult {
     rejected: {
         id: string;
         token: string;
-        reason: "cross_chain_mismatch" | "unrealistic_spread" | "stale_quote" | "low_liquidity" | "excessive_slippage" | "insufficient_net_profit" | "major_asset_suspicious_spread" | "fee_impact_too_high";
+        reason: "cross_chain_mismatch" | "unrealistic_spread" | "stale_quote" | "low_liquidity" | "excessive_slippage" | "insufficient_net_profit" | "major_asset_suspicious_spread" | "fee_impact_too_high" | "ambiguous_token_mapping" | "uncertain_execution_conditions";
         profit: number;
         liquidity: number;
         timestamp: number;
@@ -105,7 +105,20 @@ export function calculateArbitrageOpportunities(
 
         const arbId = `arb-${tokenAddr.substring(0, 8)}-${minPool.dex}-${maxPool.dex}`;
 
-        // 1. Cross-Chain Protection: Reject spreads across different chains
+        // 0. Ambiguous Token Protection (Security Layer)
+        if (minPool.baseToken.symbol !== maxPool.baseToken.symbol) {
+            rejected.push({
+                id: arbId,
+                token: minPool.baseToken.symbol,
+                reason: "ambiguous_token_mapping",
+                profit: 0,
+                liquidity: 0,
+                timestamp: Date.now()
+            });
+            return;
+        }
+
+        // 1. Cross-Chain Protection: Reject spreads across different chains (Safe Mode Priority)
         if (minPool.chain !== maxPool.chain) {
             rejected.push({
                 id: arbId,
@@ -133,12 +146,12 @@ export function calculateArbitrageOpportunities(
         }
 
         // 3. Unrealistic Spread Gate: > 50% is almost always a broken pool/liquidity imbalance
-        if (spread > 50.0) {
+        if (spread > 50.0 || isNaN(spread)) {
             rejected.push({
                 id: arbId,
                 token: minPool.baseToken.symbol,
-                reason: "unrealistic_spread",
-                profit: spread,
+                reason: isNaN(spread) ? "uncertain_execution_conditions" : "unrealistic_spread",
+                profit: isNaN(spread) ? 0 : spread,
                 liquidity: Math.min(minPool.liquidityUsd, maxPool.liquidityUsd),
                 timestamp: Date.now()
             });
@@ -182,11 +195,11 @@ export function calculateArbitrageOpportunities(
             return;
         }
 
-        // 5. Precise Slippage Simulation
+        // 5. Strict Slippage Simulation (Brutally Conservative Threshold: 5%)
         const buySlippage = SIMULATED_TRADE_SIZE / (minPool.liquidityUsd / 2);
         const sellSlippage = SIMULATED_TRADE_SIZE / (maxPool.liquidityUsd / 2);
 
-        if (buySlippage > 0.10 || sellSlippage > 0.10) { 
+        if (buySlippage > 0.05 || sellSlippage > 0.05) { 
             rejected.push({
                 id: arbId,
                 token: minPool.baseToken.symbol,
