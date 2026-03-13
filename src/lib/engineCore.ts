@@ -59,11 +59,12 @@ export interface ArbitrageEngineResult {
     rejected: {
         id: string;
         token: string;
-        reason: "LOW_LIQUIDITY" | "HIGH_SLIPPAGE" | "STALE_QUOTE" | "INSUFFICIENT_PROFIT" | "FEE_IMPACT_TOO_HIGH";
+        reason: "cross_chain_mismatch" | "unrealistic_spread" | "stale_quote" | "low_liquidity" | "excessive_slippage" | "insufficient_net_profit" | "major_asset_suspicious_spread" | "fee_impact_too_high";
         profit: number;
         liquidity: number;
         timestamp: number;
     }[];
+    watchlist: RealArbitrageOpportunity[];
 }
 
 /**
@@ -75,17 +76,19 @@ export function calculateArbitrageOpportunities(
     executionParams: { slippage: string; bribePriority: string }
 ): ArbitrageEngineResult {
     const opportunities: RealArbitrageOpportunity[] = [];
+    const watchlist: RealArbitrageOpportunity[] = [];
     const rejected: ArbitrageEngineResult['rejected'] = [];
     const tokenGroups = new Map<string, AethrixPool[]>();
 
-    const SIMULATED_TRADE_SIZE = 1000; // $1,000 standard validation size
-    const MIN_LIQUIDITY = 20000;       // $20,000 floor for executable depth
-    const MIN_NET_ROI = 1.0;            // 1% Net profit floor after ALL costs
+    const SIMULATED_TRADE_SIZE = 1000; 
+    const MIN_LIQUIDITY = 20000;       
+    const MIN_NET_ROI = 1.0;            
 
-    // 1. Group pools by token and filter by base liquidity
+    const MAJOR_ASSETS = ["SOL", "BNB", "ETH", "BTC", "USDC", "USDT"];
+
     allPools.forEach(p => {
         const addr = p.baseToken.address;
-        if (p.liquidityUsd >= 5000) { // Preliminary filter
+        if (p.liquidityUsd >= 5000) { 
             if (!tokenGroups.has(addr)) tokenGroups.set(addr, []);
             tokenGroups.get(addr)!.push(p);
         }
@@ -94,7 +97,6 @@ export function calculateArbitrageOpportunities(
     tokenGroups.forEach((pools, tokenAddr) => {
         if (pools.length < 2) return;
 
-        // Sort pools by price to find best spread
         const sorted = [...pools].sort((a, b) => a.priceUsd - b.priceUsd);
         const minPool = sorted[0];
         const maxPool = sorted[sorted.length - 1];
@@ -103,30 +105,92 @@ export function calculateArbitrageOpportunities(
 
         const arbId = `arb-${tokenAddr.substring(0, 8)}-${minPool.dex}-${maxPool.dex}`;
 
-        // 2. Liquidity Verification
-        if (minPool.liquidityUsd < MIN_LIQUIDITY || maxPool.liquidityUsd < MIN_LIQUIDITY) {
+        // 1. Cross-Chain Protection: Reject spreads across different chains
+        if (minPool.chain !== maxPool.chain) {
             rejected.push({
                 id: arbId,
                 token: minPool.baseToken.symbol,
-                reason: "LOW_LIQUIDITY",
-                profit: 0,
+                reason: "cross_chain_mismatch",
+                profit: ((maxPool.priceUsd / minPool.priceUsd) - 1) * 100,
                 liquidity: Math.min(minPool.liquidityUsd, maxPool.liquidityUsd),
                 timestamp: Date.now()
             });
             return;
         }
 
-        // 3. Precise Slippage Simulation (Conservative Estimate)
-        // We assume each side of the pool has liquidity/2. 
-        const buySlippage = SIMULATED_TRADE_SIZE / (minPool.liquidityUsd / 2);
-        const sellSlippage = SIMULATED_TRADE_SIZE / (maxPool.liquidityUsd / 2);
-
-        if (buySlippage > 0.05 || sellSlippage > 0.05) { // Discard if slippage > 5% on either side
+        // 2. Major Asset Protection: > 5% spread on majors is usually a data error/stale quote
+        const spread = ((maxPool.priceUsd / minPool.priceUsd) - 1) * 100;
+        if (MAJOR_ASSETS.includes(minPool.baseToken.symbol.toUpperCase()) && spread > 5.0) {
             rejected.push({
                 id: arbId,
                 token: minPool.baseToken.symbol,
-                reason: "HIGH_SLIPPAGE",
-                profit: 0,
+                reason: "major_asset_suspicious_spread",
+                profit: spread,
+                liquidity: Math.min(minPool.liquidityUsd, maxPool.liquidityUsd),
+                timestamp: Date.now()
+            });
+            return;
+        }
+
+        // 3. Unrealistic Spread Gate: > 50% is almost always a broken pool/liquidity imbalance
+        if (spread > 50.0) {
+            rejected.push({
+                id: arbId,
+                token: minPool.baseToken.symbol,
+                reason: "unrealistic_spread",
+                profit: spread,
+                liquidity: Math.min(minPool.liquidityUsd, maxPool.liquidityUsd),
+                timestamp: Date.now()
+            });
+            return;
+        }
+
+        // 4. Liquidity Verification
+        if (minPool.liquidityUsd < MIN_LIQUIDITY || maxPool.liquidityUsd < MIN_LIQUIDITY) {
+            // ... (keep potentialArb creation)
+            const potentialArb = {
+                id: arbId,
+                token: minPool.baseToken.symbol,
+                quoteToken: minPool.quoteToken.symbol,
+                path: `${minPool.dex} ➔ ${maxPool.dex}`,
+                buyExchange: minPool.dex,
+                sellExchange: maxPool.dex,
+                buyPrice: minPool.priceUsd,
+                sellPrice: maxPool.priceUsd,
+                buyChain: minPool.chain.toUpperCase(),
+                sellChain: maxPool.chain.toUpperCase(),
+                profit: Number(spread.toFixed(2)),
+                estimatedProfitUtic: 0,
+                simulatedSize: SIMULATED_TRADE_SIZE,
+                liquidityLevel: Math.floor(Math.min(minPool.liquidityUsd, maxPool.liquidityUsd)),
+                netProfitAfterFees: 0,
+                timeLeft: 60,
+                confidence: "LOW" as const,
+                status: "ACTIVE" as const
+            };
+            watchlist.push(potentialArb);
+            
+            rejected.push({
+                id: arbId,
+                token: minPool.baseToken.symbol,
+                reason: "low_liquidity",
+                profit: spread,
+                liquidity: Math.min(minPool.liquidityUsd, maxPool.liquidityUsd),
+                timestamp: Date.now()
+            });
+            return;
+        }
+
+        // 5. Precise Slippage Simulation
+        const buySlippage = SIMULATED_TRADE_SIZE / (minPool.liquidityUsd / 2);
+        const sellSlippage = SIMULATED_TRADE_SIZE / (maxPool.liquidityUsd / 2);
+
+        if (buySlippage > 0.10 || sellSlippage > 0.10) { 
+            rejected.push({
+                id: arbId,
+                token: minPool.baseToken.symbol,
+                reason: "excessive_slippage",
+                profit: spread,
                 liquidity: minPool.liquidityUsd,
                 timestamp: Date.now()
             });
@@ -136,23 +200,22 @@ export function calculateArbitrageOpportunities(
         const executionBuyPrice = minPool.priceUsd * (1 + buySlippage);
         const executionSellPrice = maxPool.priceUsd * (1 - sellSlippage);
 
-        // 4. Multi-leg Fee Deduction
+        // 6. Fee Deduction
         const bribeFactor = executionParams.bribePriority === "ULTRA" ? 5 : executionParams.bribePriority === "HIGH" ? 2 : 1;
         const networkFeeUsd = minPool.chain === "solana" ? (0.01 * bribeFactor) : (0.40 * bribeFactor);
 
-        // Profit Formula: net_profit = (Tokens * SellPrice) - BuyCost - Fees
         const tokensBought = SIMULATED_TRADE_SIZE / executionBuyPrice;
         const grossSellOutput = tokensBought * executionSellPrice;
         const swapFeesUsd = (SIMULATED_TRADE_SIZE * 0.003) + (grossSellOutput * 0.003);
         const netProfitUsd = (grossSellOutput - SIMULATED_TRADE_SIZE) - swapFeesUsd - networkFeeUsd;
         const netProfitROI = (netProfitUsd / SIMULATED_TRADE_SIZE) * 100;
 
-        // 5. Verification Gate
+        // 7. Verification Gate
         if (netProfitROI < MIN_NET_ROI) {
             rejected.push({
                 id: arbId,
                 token: minPool.baseToken.symbol,
-                reason: netProfitROI < 0 ? "FEE_IMPACT_TOO_HIGH" : "INSUFFICIENT_PROFIT",
+                reason: netProfitROI < 0 ? "fee_impact_too_high" : "insufficient_net_profit",
                 profit: netProfitROI,
                 liquidity: minPool.liquidityUsd,
                 timestamp: Date.now()
@@ -160,7 +223,7 @@ export function calculateArbitrageOpportunities(
             return;
         }
 
-        // 6. Final Verified Opportunity
+        // 8. Final Verified Opportunity
         opportunities.push({
             id: arbId,
             token: minPool.baseToken.symbol,
@@ -172,16 +235,16 @@ export function calculateArbitrageOpportunities(
             sellPrice: executionSellPrice,
             buyChain: minPool.chain.toUpperCase(),
             sellChain: maxPool.chain.toUpperCase(),
-            profit: Number(netProfitROI.toFixed(4)), // High precision for net
+            profit: Number(netProfitROI.toFixed(4)),
             estimatedProfitUtic: Number(netProfitUsd.toFixed(2)),
             simulatedSize: SIMULATED_TRADE_SIZE,
             liquidityLevel: Math.floor(Math.min(minPool.liquidityUsd, maxPool.liquidityUsd)),
             netProfitAfterFees: Number(netProfitUsd.toFixed(2)),
-            timeLeft: 30, // Hardcoded for verified status
+            timeLeft: 30,
             confidence: netProfitROI > 5 ? "HIGH" : "MEDIUM",
             status: "ACTIVE"
         });
     });
 
-    return { opportunities, rejected };
+    return { opportunities, rejected, watchlist };
 }

@@ -45,6 +45,7 @@ self.onmessage = async (e) => {
                     pools: allPools,
                     arbOpportunities: arbResult.opportunities,
                     arbRejected: arbResult.rejected,
+                    arbWatchlist: arbResult.watchlist,
                     solMode: solResponse.mode,
                     bscMode: bscResponse.mode,
                     timestamp: Date.now()

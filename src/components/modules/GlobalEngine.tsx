@@ -41,7 +41,7 @@ export function GlobalEngine() {
         // 1. DEX & FUSION WORKER
         const dexWorker = new Worker(new URL('../../workers/dexWorker.ts', import.meta.url), { type: 'module' });
         dexWorker.onmessage = (e) => {
-            const { type, pools, arbOpportunities, solMode, bscMode, error } = e.data;
+            const { type, pools, arbOpportunities, arbWatchlist, solMode, bscMode, error } = e.data;
 
             if (type === 'DATA_FUSED') {
                 const { arbRejected } = e.data;
@@ -61,19 +61,21 @@ export function GlobalEngine() {
                     autoRefresh: true
                 });
 
-                // Log internal rejections to system history (Internal Audit)
+                // Log internal rejections to system history (Internal Audit / Diagnostics)
                 if (arbRejected && arbRejected.length > 0) {
                     arbRejected.forEach((rej: { token: string; reason: string; profit: number }) => {
-                        // Only log high-potential rejections to avoid spamming system logs
-                        if (rej.profit > 0.5 || rej.reason === "HIGH_SLIPPAGE") {
-                            addSystemLog(`ARB_REJECTED: ${rej.token} @ ${rej.reason} (Est: ${rej.profit}%)`, "info");
-                        }
+                        // All rejections are logged to internal history for Safe Mode transparency
+                        addSystemLog(`ARB_REJECTED: ${rej.token} | ${rej.reason} (Spread: ${rej.profit.toFixed(2)}%)`, "warning");
                     });
                 }
 
-                // Arbitrage Verification & Telegram Broadcasting
+                // Arbitrage Verification & Telegram Broadcasting (SAFE MODE ACTIVE)
                 if (arbOpportunities && arbOpportunities.length > 0) {
-                    setArbitrageOpportunities(arbOpportunities);
+                    setArbitrageOpportunities([...arbOpportunities, ...(arbWatchlist || [])]);
+
+                    // PUBLIC BROADCASTING SAFETY GATE
+                    // Set to false to halt public spam during repair phase
+                    const PUB_BROADCAST_ENABLED = false; 
 
                     arbOpportunities.forEach((arb: RealArbitrageOpportunity) => {
                         const now = Date.now();
@@ -85,8 +87,11 @@ export function GlobalEngine() {
                         const isProfitExplosion = arb.profit > (lastBroadcast.profit * 1.2);
                         const isCooldownOver = timeDiff > 900000;
 
-                        if (arb.profit >= 1.0 && (isCooldownOver || isProfitExplosion)) {
-                            if (sendTelegramMessage) {
+                        // STALENESS PROTECTION: Only process fresh signals (less than 60s)
+                        const isFresh = (now - (e.data.timestamp || 0)) < 60000;
+
+                        if (arb.profit >= 1.0 && (isCooldownOver || isProfitExplosion) && isFresh) {
+                            if (sendTelegramMessage && PUB_BROADCAST_ENABLED) {
                                 // Calculate metrics for message
                                 const fees = (arb.simulatedSize * 0.006).toFixed(2);
                                 
