@@ -233,14 +233,15 @@ export interface AppState {
     ownerAddresses: string[];
     telegramToken: string | null;
     telegramChatId: string;
+    telegramTopicId: string;
     telegramEnabled: boolean;
     arbitrageOpportunities: RealArbitrageOpportunity[];
     setArbitrageOpportunities: (ops: RealArbitrageOpportunity[] | ((prev: RealArbitrageOpportunity[]) => RealArbitrageOpportunity[])) => void;
     prefilledSwap: { fromSymbol: string; toSymbol: string; amount?: number } | null;
     setPrefilledSwap: (swap: { fromSymbol: string; toSymbol: string; amount?: number } | null) => void;
-    setTelegramConfig: (token: string, chatId: string) => void;
+    setTelegramConfig: (token: string, chatId: string, topicId: string) => void;
     toggleTelegram: (enabled: boolean) => void;
-    sendTelegramMessage: (message: string, photoUrl?: string, inlineButtons?: TelegramInlineButton[][], overrides?: { token?: string; chatId?: string }) => Promise<void>;
+    sendTelegramMessage: (message: string, photoUrl?: string, inlineButtons?: TelegramInlineButton[][], overrides?: { token?: string; chatId?: string; topicId?: string }) => Promise<void>;
     executedArbs: ExecutedArb[];
     addExecutedArb: (arb: ExecutedArb) => void;
     authorizedWallets: string[];
@@ -737,6 +738,9 @@ export function AppProvider({ children }: { children: ReactNode }) {
     const [telegramChatId, setTelegramChatId] = useState<string>(() =>
         import.meta.env.VITE_TELEGRAM_CHAT_ID || localStorage.getItem("vytronix_tg_chatid") || ""
     );
+    const [telegramTopicId, setTelegramTopicId] = useState<string>(() => 
+        localStorage.getItem("vytronix_tg_topicid") || ""
+    );
     const [telegramEnabled, setTelegramEnabled] = useState<boolean>(() => {
         const stored = localStorage.getItem("vytronix_tg_enabled");
         return stored === null ? true : stored === "true";
@@ -808,11 +812,13 @@ export function AppProvider({ children }: { children: ReactNode }) {
         });
     }, []);
 
-    const setTelegramConfig = useCallback((token: string, chatId: string) => {
+    const setTelegramConfig = useCallback((token: string, chatId: string, topicId: string) => {
         setTelegramToken(token);
         setTelegramChatId(chatId);
+        setTelegramTopicId(topicId);
         localStorage.setItem("vytronix_tg_token", token);
         localStorage.setItem("vytronix_tg_chatid", chatId);
+        localStorage.setItem("vytronix_tg_topicid", topicId);
     }, []);
 
     const toggleTelegram = useCallback((enabled: boolean) => {
@@ -821,9 +827,10 @@ export function AppProvider({ children }: { children: ReactNode }) {
         addSystemLog(`TELEGRAM_NODE_${enabled ? "REBOOTED" : "KILLSWITCH_ACTIVATED"}.`, enabled ? "success" : "warning");
     }, [addSystemLog]);
 
-    const sendTelegramMessage = useCallback(async (message: string, photoUrl?: string, inlineButtons?: TelegramInlineButton[][], overrides?: { token?: string; chatId?: string }) => {
+    const sendTelegramMessage = useCallback(async (message: string, photoUrl?: string, inlineButtons?: TelegramInlineButton[][], overrides?: { token?: string; chatId?: string; topicId?: string }) => {
         let cleanToken = (overrides?.token || telegramToken)?.trim() || "";
         const cleanChatId = (overrides?.chatId || telegramChatId)?.trim();
+        const cleanTopicId = (overrides?.topicId || telegramTopicId)?.trim();
 
         // Sanitize token: remove "bot" prefix if user pasted the full URL or "bot" prefix
         if (cleanToken.toLowerCase().startsWith("bot")) {
@@ -848,6 +855,10 @@ export function AppProvider({ children }: { children: ReactNode }) {
             const payload: Record<string, unknown> = {
                 chat_id: cleanChatId,
             };
+
+            if (cleanTopicId) {
+                payload.message_thread_id = parseInt(cleanTopicId);
+            }
 
             if (useMarkdown) {
                 payload.parse_mode = "Markdown";
@@ -918,7 +929,7 @@ export function AppProvider({ children }: { children: ReactNode }) {
             }
             throw e;
         }
-    }, [telegramEnabled, telegramToken, telegramChatId, addSystemLog]);
+    }, [telegramEnabled, telegramToken, telegramChatId, telegramTopicId, addSystemLog]);
 
     useEffect(() => {
         const fetchPrices = async () => {
@@ -1337,6 +1348,7 @@ export function AppProvider({ children }: { children: ReactNode }) {
         ownerAddresses,
         telegramToken,
         telegramChatId,
+        telegramTopicId,
         telegramEnabled,
         arbitrageOpportunities,
         setArbitrageOpportunities: setArbitrageOpportunitiesStable,
@@ -1367,7 +1379,7 @@ export function AppProvider({ children }: { children: ReactNode }) {
         selectedChain, activeRpcPerChain, activeEnvPerChain, apiKey, wallet, aethrixStats, latency, rpcHealth,
         alertsEnabled, activeAlerts, watchlist, positionSnapshots, smartWallets, bscScanKey, smartMoneyActivity,
         networkMode, globalRankings, nativePrices, networkFeed, systemLogs, platformRevenue, telegramToken,
-        telegramChatId, telegramEnabled, arbitrageOpportunities, prefilledSwap, executedArbs,
+        telegramChatId, telegramTopicId, telegramEnabled, arbitrageOpportunities, prefilledSwap, executedArbs,
         hunters, hunterSignals,
         setSelectedChain, setActiveRpc, setActiveEnv, setApiKey, connectWallet, disconnectWallet,
         refreshWalletHistory, executeSwap, setAethrixStats, setAlertsEnabled, addAlert, removeAlert,

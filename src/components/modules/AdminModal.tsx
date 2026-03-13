@@ -13,6 +13,7 @@ export function AdminModal({ isOpen, onClose }: AdminModalProps) {
     const {
         telegramToken,
         telegramChatId,
+        telegramTopicId,
         telegramEnabled,
         setTelegramConfig,
         toggleTelegram,
@@ -31,13 +32,14 @@ export function AdminModal({ isOpen, onClose }: AdminModalProps) {
 
     const [token, setToken] = useState(telegramToken || "");
     const [chatId, setChatId] = useState(telegramChatId);
+    const [topicId, setTopicId] = useState(telegramTopicId || "");
     const [testStatus, setTestStatus] = useState<"idle" | "loading" | "success" | "error">("idle");
     const [lastError, setLastError] = useState<string | null>(null);
     const [deliveredTo, setDeliveredTo] = useState<string | null>(null);
     const [newWhaleAddr, setNewWhaleAddr] = useState("");
 
     const handleSave = () => {
-        setTelegramConfig(token, chatId);
+        setTelegramConfig(token, chatId, topicId);
         onClose();
     };
 
@@ -53,7 +55,7 @@ export function AdminModal({ isOpen, onClose }: AdminModalProps) {
                 `📡 BROADCAST: [VERIFIED]\n\n` +
                 `_Deployment successful. Bot is now linked and ready for alpha transmission._`;
 
-            const chatName = await sendTelegramMessage(mockMsg, undefined, undefined, { token, chatId }) as unknown as string;
+            const chatName = await sendTelegramMessage(mockMsg, undefined, undefined, { token, chatId, topicId }) as unknown as string;
             setDeliveredTo(chatName);
             setTestStatus("success");
             setTimeout(() => setTestStatus("idle"), 5000);
@@ -139,6 +141,11 @@ export function AdminModal({ isOpen, onClose }: AdminModalProps) {
                                     <div className="space-y-2 mt-4">
                                         <label className="text-[10px] font-black uppercase tracking-widest text-zinc-500 flex items-center gap-1"><Send size={10} className="text-blue-500" /> {t.admin_bot_token}</label>
                                         <input type="password" value={token} onChange={(e) => setToken(e.target.value)} placeholder="123456789:ABCDE..." className="w-full border-2 border-black p-2 font-mono text-[10px] focus:ring-0 focus:outline-none focus:bg-blue-50/50" />
+                                    </div>
+
+                                    <div className="space-y-2">
+                                        <label className="text-[10px] font-black uppercase tracking-widest text-zinc-500">{t.admin_topic_id}</label>
+                                        <input type="text" value={topicId} onChange={(e) => setTopicId(e.target.value.trim())} placeholder="Optional (e.g. 15)" className="w-full border-2 border-black p-2 font-mono text-[10px] focus:ring-0 focus:outline-none focus:bg-zinc-50" />
                                     </div>
 
                                     <div className="space-y-2">
