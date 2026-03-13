@@ -39,11 +39,12 @@ interface ChatMessage {
 }
 
 export function AIBot() {
-    const { networkMode, wallet, networkFeed, arbitrageOpportunities, language, kolSignals, audioEnabled: isAudioEnabled, setAudioEnabled: setIsAudioEnabled, marketSentiment } = useAppStore();
+    const { networkMode, wallet, networkFeed, language, audioEnabled: isAudioEnabled, setAudioEnabled: setIsAudioEnabled, marketSentiment } = useAppStore();
     const t = translations[language];
-    const lastFeedCount = useRef(networkFeed.length);
-    const lastArbCount = useRef(arbitrageOpportunities.length);
-    const alertedTokens = useRef<Set<string>>(new Set());
+    // Removed unused refs for proactive alerts
+    // const lastFeedCount = useRef(networkFeed.length);
+    // const lastArbCount = useRef(arbitrageOpportunities.length);
+    // const alertedTokens = useRef<Set<string>>(new Set());
 
     const QUICK_COMMANDS = [
         { label: t.bot_quick_audit, cmd: "audit " },
@@ -58,7 +59,6 @@ export function AIBot() {
     const [isChatOpen, setIsChatOpen] = useState(false); // Controls the main chat window
     const [messageIndex, setMessageIndex] = useState(0);
     const [inputValue, setInputValue] = useState("");
-    const [dynamicAlert, setDynamicAlert] = useState("");
     const [isTerminalMode, setIsTerminalMode] = useState(false);
     const mouseX = useMotionValue(0);
     const mouseY = useMotionValue(0);
@@ -157,106 +157,7 @@ export function AIBot() {
         return () => clearInterval(tooltipInterval);
     }, [isChatOpen, aiSuggestions.length]);
 
-    // PROACTIVE SNIPER PERSONALITY: Listen to the pulse feed and "shout" alerts
-    useEffect(() => {
-        if (!networkMode) return;
-
-        // Compare length to detect new events
-        if (networkFeed.length > lastFeedCount.current) {
-            const latest = networkFeed[networkFeed.length - 1];
-            lastFeedCount.current = networkFeed.length;
-
-            // Only alert on major dominance or big executions
-            if (latest.type === "BUY DOMINANCE" || (latest.type === "ORDER_EXECUTION" && parseFloat(latest.metricValue) > 50000)) {
-                const sniperAlert = t.bot_sniper_alert
-                    .replace('{type}', latest.type)
-                    .replace('{token}', latest.tokenSymbol)
-                    .replace('{chain}', latest.chain)
-                    .replace('{val}', latest.metricValue);
-
-                // Wrap in timeout to avoid cascading render warning in React
-                setTimeout(() => {
-                    setChatHistory(prev => {
-                        if (prev[prev.length - 1]?.text === sniperAlert) return prev;
-                        return [...prev, { sender: "bot", text: sniperAlert, type: "text" as const }];
-                    });
-
-                    if (!isChatOpen) {
-                        setDynamicAlert(sniperAlert);
-                        setMessageIndex(-1); // Signal for dynamic alert
-                        setIsTooltipVisible(true);
-                    }
-                }, 0);
-
-                if (!isChatOpen) {
-                    setTimeout(() => setIsTooltipVisible(false), 8000);
-                }
-            }
-        }
-    }, [networkFeed, networkMode, isChatOpen, language, t.bot_sniper_alert]);
-
-    // ARBITRAGE PROACTIVE: Detect profitable spreads and alert
-    useEffect(() => {
-        if (!networkMode || arbitrageOpportunities.length === 0) return;
-
-        if (arbitrageOpportunities.length > lastArbCount.current) {
-            const sorted = [...arbitrageOpportunities].sort((a, b) => b.profit - a.profit);
-            const best = sorted[0];
-            lastArbCount.current = arbitrageOpportunities.length;
-
-            if (best && best.profit > 1.5) {
-                const arbAlert = t.bot_arb_alert
-                    .replace('{token}', best.token)
-                    .replace('{spread}', best.profit.toFixed(2))
-                    .replace('{buy}', best.buyExchange)
-                    .replace('{sell}', best.sellExchange);
-
-                setTimeout(() => {
-                    setChatHistory((prev: ChatMessage[]) => {
-                        if (prev[prev.length - 1]?.text === arbAlert) return prev;
-                        return [...prev, { sender: "bot", text: arbAlert, type: "text" as const }];
-                    });
-                }, 100);
-            }
-        }
-    }, [arbitrageOpportunities, networkMode, language, t.bot_arb_alert]);
-
-    // SOCIAL INTELLIGENCE PROACTIVE: Listen to KOL signals for high-conviction alerts
-    useEffect(() => {
-        if (!networkMode) return;
-
-        kolSignals.forEach(signal => {
-            const token = signal.tokenSymbol;
-            // Trigger alert if 2+ KOLs mention OR it's a confirmed high-impact signal (impact > 75)
-            const isHighConviction = (signal.kols.length >= 2 || signal.isConfirmation) && signal.impactScore > 75;
-
-            if (isHighConviction && !alertedTokens.current.has(token)) {
-                alertedTokens.current.add(token);
-
-                const botMsg = language === 'es'
-                    ? `📡 ALERTA SOCIAL: $${token} detectado con alta convicción. Mencionado por ${signal.kols.length} KOLs con impacto de ${signal.impactScore}%.`
-                    : `📡 SOCIAL ALERT: $${token} detected with high conviction. Mentioned by ${signal.kols.length} key influencers. Impact: ${signal.impactScore}%.`;
-
-                // Add to chat and show tooltip
-                setTimeout(() => {
-                    setChatHistory((prev: ChatMessage[]) => {
-                        if (prev.some(m => m.text === botMsg)) return prev;
-                        return [...prev, { sender: "bot", text: botMsg, type: "text" as const }];
-                    });
-
-                    if (!isChatOpen) {
-                        setDynamicAlert(botMsg);
-                        setMessageIndex(-1); // Signal for dynamic alert
-                        setIsTooltipVisible(true);
-                    }
-                }, 200);
-
-                if (!isChatOpen) {
-                    setTimeout(() => setIsTooltipVisible(false), 10000);
-                }
-            }
-        });
-    }, [kolSignals, networkMode, isChatOpen, language]);
+    // Proactive alerts removed as part of signal simplification effort.
 
     // DERIVED GLOBAL MOOD: Fast pulse if hyperactive, slow if calm
     const [hyperActive, setHyperActive] = useState(false);
@@ -608,7 +509,7 @@ export function AIBot() {
                                 </button>
                                 <p className="font-mono text-xs leading-tight text-black flex items-start gap-2">
                                     <ArrowRight size={12} className="shrink-0 mt-0.5 text-[#00ff41]" />
-                                    <span className="font-bold">{messageIndex === -1 ? dynamicAlert : aiSuggestions[messageIndex]}</span>
+                                    <span className="font-bold">{aiSuggestions[messageIndex]}</span>
                                 </p>
                             </motion.div>
                         )

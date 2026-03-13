@@ -303,21 +303,16 @@ export function ArbitrageScanner() {
                                 ];
 
                                 const tgMsg =
-                                    `🛡️ *VYTRONIX MANUAL ALPHA*\n` +
-                                    `━━━━━━━━━━━━━━━━━━━━\n\n` +
-                                    `💰 *PROFIT:* \`+${mockOpp.spreadPercent.toFixed(2)}%\` *ROI*\n` +
-                                    `💎 *TOKEN:* ${mockOpp.tokenSymbol}\n\n` +
-                                    `📥 *ENTRY (BUY):* ${mockOpp.buyExchange.toUpperCase()}\n` +
-                                    `└ *CHAIN:* ${mockOpp.buyChain}\n\n` +
-                                    `📤 *EXIT (SELL):* ${mockOpp.sellExchange.toUpperCase()}\n` +
-                                    `└ *CHAIN:* ${mockOpp.sellChain}\n\n` +
-                                    `━━━━━━━━━━━━━━━━━━━━\n` +
-                                    `⚡ *SIGNAL:* [FORCE_BROADCAST]\n\n` +
-                                    `🔗 *OFFICIAL NODES:*\n` +
-                                    (adminConfig.officialSolanaContract ? `• SOL: \`${adminConfig.officialSolanaContract}\`\n` : "") +
-                                    (adminConfig.officialBscContract ? `• BSC: \`${adminConfig.officialBscContract}\`\n` : "") +
-                                    `\n⚠️ *DISCLAIMER:* _${adminConfig.disclaimer}_\n` +
-                                    `\n🛡 _Broadcasted via Vytronix Terminal_`;
+                                    `⚡ VYTRONIX ARBITRAGE OPPORTUNITY\n` +
+                                    `━━━━━━━━━━━━━━━━\n\n` +
+                                    `💎 Token: ${mockOpp.tokenSymbol}\n\n` +
+                                    `🛒 Buy on: ${mockOpp.buyExchange}\n` +
+                                    `💸 Sell on: ${mockOpp.sellExchange}\n\n` +
+                                    `📦 Trade Size: $10,000\n` +
+                                    `📈 Potential Profit: +${mockOpp.spreadPercent.toFixed(2)}%\n\n` +
+                                    `💧 Liquidity: $250.0K\n\n` +
+                                    `━━━━━━━━━━━━━━━━\n` +
+                                    `⚡ Detected by Vytronix Engine`;
 
                                 sendTelegramMessage(tgMsg, "https://i.ibb.co/vzR0j4m/vytronix-promo-1.png", inlineButtons);
                                 addSystemLog("TG_NODE: Manual alpha injection successfully triggered.", "success");

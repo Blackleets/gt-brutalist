@@ -30,8 +30,6 @@ export function GlobalEngine() {
     const smWorkerRef = useRef<Worker | null>(null);
     const lastUnifiedBroadcastRef = useRef<Record<string, number>>({});
     const lastArbBroadcastRef = useRef<Record<string, { time: number; profit: number }>>({});
-    const lastSurgeBroadcastRef = useRef<Record<string, number>>({});
-    const lastGlobalAlertTickRef = useRef<number>(0);
     const processedHunterHashesRef = useRef<Set<string>>(new Set());
     const prevPoolsRef = useRef<Record<string, AethrixPool>>({});
     const lastHunterTelegramRef = useRef<number>(0);
@@ -94,22 +92,19 @@ export function GlobalEngine() {
 
                         if (arb.profit >= 1.0 && (isCooldownOver || isProfitExplosion) && isFresh && arb.classification === "VERIFIED") {
                             if (sendTelegramMessage && PUB_BROADCAST_ENABLED && telegramEnabled) {
-                                const fees = (arb.simulatedSize * 0.006).toFixed(2);
+                                // Removed fees calculation as it's not in the new format
                                 
                                 const tgMsg = 
-                                    `🟢 *VYTRONIX VERIFIED ARBITRAGE*\n` +
-                                    `*Strict Validation Applied*\n\n` +
-                                    `💠 Token: *${arb.token}*\n` +
-                                    `🛒 Buy: \`${arb.buyExchange}\` — *$${arb.buyPrice.toFixed(6)}*\n` +
-                                    `💸 Sell: \`${arb.sellExchange}\` — *$${arb.sellPrice.toFixed(6)}*\n\n` +
-                                    `💧 Liquidity: *$${(arb.liquidityLevel / 1000).toFixed(1)}K*\n` +
-                                    `📦 Trade Size: *$${arb.simulatedSize}*\n` +
-                                    `📉 Slippage: *<${((arb.simulatedSize / (arb.liquidityLevel / 2)) * 100).toFixed(2)}%*\n` +
-                                    `🧾 Fees: *$${fees}*\n` +
-                                    `📈 Net Profit: *+${arb.profit}%*\n\n` +
-                                    `⏱ Window: *LIVE*\n` +
-                                    `🔒 Status: *VERIFIED EXECUTION*\n` +
-                                    `⚡ Source: *Vytronix Engine*`;
+                                    `⚡ VYTRONIX ARBITRAGE OPPORTUNITY\n` +
+                                    `━━━━━━━━━━━━━━━━\n\n` +
+                                    `💎 Token: ${arb.token}\n\n` +
+                                    `🛒 Buy on: ${arb.buyExchange}\n` +
+                                    `💸 Sell on: ${arb.sellExchange}\n\n` +
+                                    `📦 Trade Size: $${arb.simulatedSize}\n` +
+                                    `📈 Potential Profit: +${arb.profit}%\n\n` +
+                                    `💧 Liquidity: $${(arb.liquidityLevel / 1000).toFixed(1)}K\n\n` +
+                                    `━━━━━━━━━━━━━━━━\n` +
+                                    `⚡ Detected by Vytronix Engine`;
 
                                 sendTelegramMessage(tgMsg, "https://vytronix.io/vytronix-bot.jpg");
                                 lastArbBroadcastRef.current[arb.token] = { time: now, profit: arb.profit };
@@ -137,18 +132,18 @@ export function GlobalEngine() {
                                     : `https://solscan.io/tx/${sig.hash}`;
 
                                 const profitMsg = 
-                                    `💰 *VYTRONIX PROFIT DETECTED*\n` +
+                                    `💰 VYTRONIX ARBITRAGE EXECUTED\n` +
                                     `━━━━━━━━━━━━━━━━\n\n` +
-                                    `🐋 Trader: \`${partialAddr}\`\n\n` +
-                                    `💎 Token: *${sig.token}*\n\n` +
-                                    `🛒 Buy: \`${sig.buyDex}\`\n` +
-                                    `💸 Sell: \`${sig.sellDex}\`\n\n` +
-                                    `📦 Trade Size: *$${sig.sizeUsd.toFixed(2)}*\n` +
-                                    `📈 Profit: *+${sig.profitPct.toFixed(2)}% ($${sig.profitUsd.toFixed(2)})*\n\n` +
-                                    `🔗 Verify\n` +
+                                    `🐋 Wallet: ${partialAddr}\n\n` +
+                                    `💎 Token: ${sig.token}\n\n` +
+                                    `🛒 Bought on: ${sig.buyDex}\n` +
+                                    `💸 Sold on: ${sig.sellDex}\n\n` +
+                                    `📦 Trade Size: $${sig.sizeUsd.toLocaleString()}\n` +
+                                    `📈 Profit: +$${sig.profitUsd.toLocaleString()}\n\n` +
+                                    `🔗 Verify Transaction\n` +
                                     `${explorerLink}\n\n` +
                                     `━━━━━━━━━━━━━━━━\n` +
-                                    `⚡ Source: Vytronix Hunter Engine`;
+                                    `⚡ Detected by Vytronix Engine`;
 
                                 sendTelegramMessage(profitMsg, "https://vytronix.io/vytronix-bot.jpg");
                                 lastHunterTelegramRef.current = now;
@@ -207,18 +202,18 @@ export function GlobalEngine() {
                                     : `https://solscan.io/tx/${profit.hash}`;
                                 
                                 const profitMsg = 
-                                    `💰 *VYTRONIX PROFIT DETECTED*\n` +
+                                    `💰 VYTRONIX ARBITRAGE EXECUTED\n` +
                                     `━━━━━━━━━━━━━━━━\n\n` +
-                                    `🐋 Trader: \`${partialAddr}\`\n\n` +
-                                    `💎 Token: *${profit.token}*\n\n` +
-                                    `🛒 Buy: \`${profit.dexFrom}\`\n` +
-                                    `💸 Sell: \`${profit.dexTo}\`\n\n` +
-                                    `📦 Trade Size: *$${profit.sizeUsd.toFixed(2)}*\n` +
-                                    `📈 Profit: *+${profit.spread.toFixed(2)}% ($${profit.profitUsd.toFixed(2)})*\n\n` +
-                                    `🔗 Verify\n` +
+                                    `🐋 Wallet: ${partialAddr}\n\n` +
+                                    `💎 Token: ${profit.token}\n\n` +
+                                    `🛒 Bought on: ${profit.dexFrom}\n` +
+                                    `💸 Sold on: ${profit.dexTo}\n\n` +
+                                    `📦 Trade Size: $${profit.sizeUsd.toFixed(2)}\n` +
+                                    `📈 Profit: +$${profit.profitUsd.toFixed(2)}\n\n` +
+                                    `🔗 Verify Transaction\n` +
                                     `${explorerLink}\n\n` +
                                     `━━━━━━━━━━━━━━━━\n` +
-                                    `⚡ Source: Vytronix Hunter Engine`;
+                                    `⚡ Detected by Vytronix Engine`;
 
                                 sendTelegramMessage(profitMsg, "https://vytronix.io/vytronix-bot.jpg");
                                 lastHunterTelegramRef.current = now;
@@ -235,64 +230,8 @@ export function GlobalEngine() {
                     const unifiedScore = pool.score || 0;
                     if (unifiedScore > 60) {
                         const now = Date.now();
-                        const lastBroadcast = lastUnifiedBroadcastRef.current[pool.baseToken.address] || 0;
-
-                        if (now - lastBroadcast > 600000) { 
-                            const tier = unifiedScore > 80 ? "ULTRA SIGNAL" : "HIGH SIGNAL";
-                            const confidenceEmoji = unifiedScore > 85 ? "💎" : "🔥";
-                            const tgMsg = `🚨 *VYTRONIX NEURAL HIT: ${tier}*\n` +
-                                `━━━━━━━━━━━━━━━━━━━━\n` +
-                                `💎 Asset: *${pool.baseToken.symbol}*\n` +
-                                `🎯 Score: *${unifiedScore}/100* ${confidenceEmoji}\n` +
-                                `🛡️ Risk: *LOW-DEC (Verified)*\n\n` +
-                                `📊 Intelligence: ${pool.alphaReasons?.slice(0, 2).join(" | ")}\n` +
-                                `🌊 Liquidity: *$${(pool.liquidityUsd / 1000).toFixed(1)}K*\n` +
-                                `━━━━━━━━━━━━━━━━━━━━\n` +
-                                `🤖 _"Vytronix Sentinel has localized a high-probability alpha pattern. Monitoring execution..."_`;
-                                    
-                            sendTelegramMessage(tgMsg, "https://vytronix.io/vytronix-bot.jpg");
-
-                            addFeedEvent({
-                                id: `fused-${pool.id}-${now}`,
-                                chain: pool.chain.toUpperCase(),
-                                type: "BUY DOMINANCE",
-                                metricValue: `${tier}: ${unifiedScore}`,
-                                tokenSymbol: pool.baseToken.symbol,
-                                time: now,
-                                isPositive: true
-                            });
-
-                            if (now - lastGlobalAlertTickRef.current > 10000) { 
-                                addAlert({
-                                    tokenId: pool.id,
-                                    tokenSymbol: pool.baseToken.symbol,
-                                    message: `${tier} (SCORE: ${unifiedScore})`,
-                                    type: "SCORE_SURGE"
-                                });
-                                lastGlobalAlertTickRef.current = now;
-                            }
-
-                            lastUnifiedBroadcastRef.current[pool.baseToken.address] = now;
-                        }
-                    }
-
-                    const prev = prevPoolsRef.current[pool.id];
-                    if (alertsEnabled && prev && (pool.score - (prev.score || 0)) >= 15) {
-                        const now = Date.now();
-                        const lastSurge = lastSurgeBroadcastRef.current[pool.baseToken.address] || 0;
-
-                        if (now - lastSurge > 1200000) { 
-                            if (now - lastGlobalAlertTickRef.current > 10000) {
-                                addAlert({
-                                    tokenId: pool.id,
-                                    tokenSymbol: pool.baseToken.symbol,
-                                    message: `MOMENTUM SURGE: +${pool.score - (prev.score || 0)} PTS`,
-                                    type: "MOMENTUM_SPIKE"
-                                });
-                                lastGlobalAlertTickRef.current = now;
-                            }
-                            lastSurgeBroadcastRef.current[pool.baseToken.address] = now;
-                        }
+                        // Removed VYTRONIX NEURAL HIT (AI score-based alerts)
+                        lastUnifiedBroadcastRef.current[pool.baseToken.address] = now;
                     }
                 });
 
@@ -333,6 +272,7 @@ export function GlobalEngine() {
                         followerCount: signal.followerCount || "Unknown",
                         tokenAddress: signal.tokenAddress || "0x00...fused"
                     });
+                    /*
                     addFeedEvent({
                         id: `kol-${signal.id}`,
                         chain: "GLOBAL",
@@ -342,6 +282,7 @@ export function GlobalEngine() {
                         time: Date.now(),
                         isPositive: true
                     });
+                    */
                 });
             }
         };

@@ -49,11 +49,11 @@ export function AdminModal({ isOpen, onClose }: AdminModalProps) {
         setLastError(null);
         setDeliveredTo(null);
         try {
-            const mockMsg = `🛡 *VYTRONIX CONNECTION TEST*\n\n` +
+            const mockMsg = `🛡 VYTRONIX CONNECTION TEST\n\n` +
                 `✅ STATUS: [HEALTHY]\n` +
                 `👤 AUTHORIZED OPS: [ADMIN]\n` +
                 `📡 BROADCAST: [VERIFIED]\n\n` +
-                `_Deployment successful. Bot is now linked and ready for alpha transmission._`;
+                `Deployment successful. Bot is now linked and ready for signals.`;
 
             const chatName = await sendTelegramMessage(mockMsg, undefined, undefined, { token, chatId, topicId }) as unknown as string;
             setDeliveredTo(chatName);

@@ -49,15 +49,22 @@ export function ArbitrageFlash() {
 
         // Tactical Alert Broadcast (Fixed/Added per requirements)
         if (sendTelegramAlert) {
-            const message = `🚀 *VYTRONIX ARBITRAGE SIGNAL*\n` +
-                          `💎 Asset: *${op.token}*\n` +
-                          `📈 Net Profit: *+${op.profit}%*\n` +
-                          `🛒 Path: \`${op.path}\`\n\n` +
-                          `⚡ Source: Vytronix Engine`;
+            const message = 
+                `⚡ VYTRONIX ARBITRAGE OPPORTUNITY\n` +
+                `━━━━━━━━━━━━━━━━\n\n` +
+                `💎 Token: ${op.token}\n\n` +
+                `🛒 Buy on: ${op.buyExchange}\n` +
+                `💸 Sell on: ${op.sellExchange}\n\n` +
+                `📦 Trade Size: $${op.simulatedSize}\n` +
+                `📈 Potential Profit: +${op.profit.toFixed(2)}%\n\n` +
+                `💧 Liquidity: $${(op.liquidityLevel / 1000).toFixed(1)}K\n\n` +
+                `━━━━━━━━━━━━━━━━\n` +
+                `⚡ Detected by Vytronix Engine`;
+
             sendTelegramAlert(
                 message,
                 "-1003864053759",
-                55
+                "55"
             );
         }
 
