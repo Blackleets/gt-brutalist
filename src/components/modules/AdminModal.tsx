@@ -37,9 +37,11 @@ export function AdminModal({ isOpen, onClose }: AdminModalProps) {
     const [lastError, setLastError] = useState<string | null>(null);
     const [deliveredTo, setDeliveredTo] = useState<string | null>(null);
     const [newWhaleAddr, setNewWhaleAddr] = useState("");
+    const [signalInterval, setSignalInterval] = useState(adminConfig.signalInterval || 60);
 
     const handleSave = () => {
         setTelegramConfig(token, chatId, topicId);
+        setAdminConfig({ signalInterval });
         onClose();
     };
 
@@ -169,6 +171,26 @@ export function AdminModal({ isOpen, onClose }: AdminModalProps) {
                                     <div className="space-y-2">
                                         <label className="text-[10px] font-black uppercase tracking-widest text-zinc-500">{t.admin_topic_id}</label>
                                         <input type="text" value={topicId} onChange={(e) => setTopicId(e.target.value.trim())} placeholder="Optional (e.g. 15)" className="w-full border-2 border-black p-2 font-mono text-[10px] focus:ring-0 focus:outline-none focus:bg-zinc-50" />
+                                    </div>
+
+                                    <div className="space-y-2">
+                                        <label className="text-[10px] font-black uppercase tracking-widest text-zinc-500">{t.admin_signal_interval}</label>
+                                        <div className="flex items-center gap-3">
+                                            <input 
+                                                type="range" 
+                                                min="10" 
+                                                max="600" 
+                                                step="10"
+                                                title="Signal Broadcast Interval"
+                                                value={signalInterval} 
+                                                onChange={(e) => setSignalInterval(parseInt(e.target.value))} 
+                                                className="flex-1 accent-black h-2 transition-all cursor-pointer" 
+                                            />
+                                            <span className="font-mono text-[12px] font-black w-12 text-right">{signalInterval}s</span>
+                                        </div>
+                                        <p className="text-[8px] font-bold text-zinc-400 uppercase leading-tight italic">
+                                            Controls cooldown between signal broadcasts to prevent spam.
+                                        </p>
                                     </div>
 
                                     <button

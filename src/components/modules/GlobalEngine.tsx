@@ -22,7 +22,8 @@ export function GlobalEngine() {
         executedArbs,
         addExecutedArb,
         setHunters,
-        addHunterSignal
+        addHunterSignal,
+        adminConfig
     } = useAppStore();
 
     const dexWorkerRef = useRef<Worker | null>(null);
@@ -35,11 +36,16 @@ export function GlobalEngine() {
     const lastHunterTelegramRef = useRef<number>(0);
     const kolSignalsRef = useRef(kolSignals);
     const sentimentRef = useRef<number>(50);
+    const adminConfigRef = useRef(adminConfig);
 
-    // Update ref when store changes
+    // Update refs when store changes
     useEffect(() => {
         kolSignalsRef.current = kolSignals;
     }, [kolSignals]);
+
+    useEffect(() => {
+        adminConfigRef.current = adminConfig;
+    }, [adminConfig]);
 
     // Initialize Workers
     useEffect(() => {
@@ -87,7 +93,7 @@ export function GlobalEngine() {
 
                         const timeDiff = now - lastBroadcast.time;
                         const isProfitExplosion = arb.profit > (lastBroadcast.profit * 1.2);
-                        const isCooldownOver = timeDiff > 900000;
+                        const isCooldownOver = timeDiff > (adminConfigRef.current.signalInterval * 1000);
                         const isFresh = (now - (e.data.timestamp || 0)) < 30000;
 
                         if (arb.profit >= 1.0 && (isCooldownOver || isProfitExplosion) && isFresh && arb.classification === "VERIFIED") {
@@ -123,9 +129,9 @@ export function GlobalEngine() {
                             addHunterSignal(sig);
 
                             // PROFIT_DETECTED_SIGNAL: Real executed trades observed on-chain
-                            // Policy: Send every 2 minutes to avoid spam
+                            // Policy: Use global signal interval to avoid spam
                             const now = Date.now();
-                            if (telegramEnabled && (now - lastHunterTelegramRef.current > 120000)) {
+                            if (telegramEnabled && (now - lastHunterTelegramRef.current > (adminConfigRef.current.signalInterval * 1000))) {
                                 const partialAddr = `${sig.hunter.substring(0, 6)}...${sig.hunter.slice(-4)}`;
                                 const explorerLink = sig.hunter.startsWith('0x') 
                                     ? `https://bscscan.com/tx/${sig.hash}` 
@@ -195,7 +201,7 @@ export function GlobalEngine() {
                             
                             // Emit PROFIT_DETECTED_SIGNAL for validated real trades
                             const now = Date.now();
-                            if (sendTelegramMessage && telegramEnabled && (now - lastHunterTelegramRef.current > 60000)) {
+                            if (sendTelegramMessage && telegramEnabled && (now - lastHunterTelegramRef.current > (adminConfigRef.current.signalInterval * 1000))) {
                                 const partialAddr = `${profit.wallet.substring(0, 6)}...${profit.wallet.substring(profit.wallet.length - 4)}`;
                                 const explorerLink = profit.wallet.startsWith('0x') 
                                     ? `https://bscscan.com/tx/${profit.hash}` 

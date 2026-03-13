@@ -257,6 +257,7 @@ export interface AppState {
         discordLink: string;
         telegramLink: string;
         disclaimer: string;
+        signalInterval: number;
     };
     setAdminConfig: (config: Partial<AppState["adminConfig"]>) => void;
     activeViewId: string;
@@ -757,7 +758,8 @@ export function AppProvider({ children }: { children: ReactNode }) {
             twitterLink: "",
             discordLink: "",
             telegramLink: "",
-            disclaimer: "Investing in DeFi involves high risk. Only trade what you can afford to lose."
+            disclaimer: "Investing in DeFi involves high risk. Only trade what you can afford to lose.",
+            signalInterval: 60
         };
     });
 
