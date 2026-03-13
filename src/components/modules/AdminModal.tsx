@@ -143,10 +143,7 @@ export function AdminModal({ isOpen, onClose }: AdminModalProps) {
                                         <input type="password" value={token} onChange={(e) => setToken(e.target.value)} placeholder="123456789:ABCDE..." className="w-full border-2 border-black p-2 font-mono text-[10px] focus:ring-0 focus:outline-none focus:bg-blue-50/50" />
                                     </div>
 
-                                    <div className="space-y-2">
-                                        <label className="text-[10px] font-black uppercase tracking-widest text-zinc-500">{t.admin_topic_id}</label>
-                                        <input type="text" value={topicId} onChange={(e) => setTopicId(e.target.value.trim())} placeholder="Optional (e.g. 15)" className="w-full border-2 border-black p-2 font-mono text-[10px] focus:ring-0 focus:outline-none focus:bg-zinc-50" />
-                                    </div>
+
 
                                     <div className="space-y-2">
                                         <div className="flex items-center justify-between">
@@ -167,6 +164,11 @@ export function AdminModal({ isOpen, onClose }: AdminModalProps) {
                                         {token.includes(chatId) && chatId.length > 5 && (
                                             <p className="text-[8px] font-bold text-red-500 uppercase mt-1 animate-bounce">!! WARNING: YOU ARE USING THE BOT ID. USE YOUR USER ID INSTEAD !!</p>
                                         )}
+                                    </div>
+
+                                    <div className="space-y-2">
+                                        <label className="text-[10px] font-black uppercase tracking-widest text-zinc-500">{t.admin_topic_id}</label>
+                                        <input type="text" value={topicId} onChange={(e) => setTopicId(e.target.value.trim())} placeholder="Optional (e.g. 15)" className="w-full border-2 border-black p-2 font-mono text-[10px] focus:ring-0 focus:outline-none focus:bg-zinc-50" />
                                     </div>
 
                                     <button
