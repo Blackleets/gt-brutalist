@@ -74,8 +74,8 @@ export function GlobalEngine() {
                     setArbitrageOpportunities([...arbOpportunities, ...(arbWatchlist || [])]);
 
                     // PUBLIC BROADCASTING SAFETY GATE
-                    // Set to false to halt public spam during repair phase
-                    const PUB_BROADCAST_ENABLED = false; 
+                    // Set to true to allow ONLY verified executable signals
+                    const PUB_BROADCAST_ENABLED = true; 
 
                     arbOpportunities.forEach((arb: RealArbitrageOpportunity) => {
                         const now = Date.now();
@@ -90,7 +90,7 @@ export function GlobalEngine() {
                         // STALENESS PROTECTION: Only process fresh signals (less than 60s)
                         const isFresh = (now - (e.data.timestamp || 0)) < 60000;
 
-                        if (arb.profit >= 1.0 && (isCooldownOver || isProfitExplosion) && isFresh) {
+                        if (arb.profit >= 1.0 && (isCooldownOver || isProfitExplosion) && isFresh && arb.classification === "VERIFIED") {
                             if (sendTelegramMessage && PUB_BROADCAST_ENABLED) {
                                 // Calculate metrics for message
                                 const fees = (arb.simulatedSize * 0.006).toFixed(2);

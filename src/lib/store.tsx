@@ -116,6 +116,7 @@ export interface RealArbitrageOpportunity {
     timeLeft: number;
     confidence: "HIGH" | "MEDIUM" | "LOW";
     status: "ACTIVE" | "EXPIRED";
+    classification: "VERIFIED" | "WATCHLIST";
 }
 
 export interface ExecutedArb {

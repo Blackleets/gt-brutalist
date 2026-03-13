@@ -166,7 +166,8 @@ export function calculateArbitrageOpportunities(
                 netProfitAfterFees: 0,
                 timeLeft: 60,
                 confidence: "LOW" as const,
-                status: "ACTIVE" as const
+                status: "ACTIVE" as const,
+                classification: "WATCHLIST" as const
             };
             watchlist.push(potentialArb);
             
@@ -242,7 +243,8 @@ export function calculateArbitrageOpportunities(
             netProfitAfterFees: Number(netProfitUsd.toFixed(2)),
             timeLeft: 30,
             confidence: netProfitROI > 5 ? "HIGH" : "MEDIUM",
-            status: "ACTIVE"
+            status: "ACTIVE",
+            classification: "VERIFIED"
         });
     });
 
