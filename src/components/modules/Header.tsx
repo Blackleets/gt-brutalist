@@ -61,7 +61,7 @@ export function Header() {
                 </div>
             </div>
 
-            <div className="px-4 md:px-16 py-3 md:py-4 flex flex-col sm:flex-row justify-between items-center bg-white gap-3 md:gap-4">
+            <div className="px-4 md:px-8 py-3 md:py-4 flex flex-col sm:flex-row justify-between items-center bg-white gap-3 md:gap-4">
                 <div className="hidden lg:flex items-center gap-6 border-r-4 border-black pr-8 mr-4 h-12">
                     {isOwner ? (
                         <button

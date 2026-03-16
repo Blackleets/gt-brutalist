@@ -62,13 +62,13 @@ function AppContent() {
           </div>
         )}
 
-        {activeViewId === "HOME" && (
-          <>
-            {!networkMode && <Hero />}
-            <div className="max-w-[1600px] mx-auto px-4 md:px-8 space-y-12 py-12">
-              <div className="grid grid-cols-1 lg:grid-cols-1 xl:grid-cols-3 2xl:grid-cols-4 gap-12">
+        <div className="w-full max-w-[1400px] mx-auto px-4 md:px-8 space-y-12 py-12 relative z-20">
+          {activeViewId === "HOME" && (
+            <>
+              {!networkMode && <Hero />}
+              <div className="grid grid-cols-1 xl:grid-cols-3 gap-12">
                 {/* Main Content Area */}
-                <div className="xl:col-span-2 2xl:col-span-3 space-y-12">
+                <div className="xl:col-span-2 space-y-12">
                   <Mercados />
                   {networkMode && <AegisAgent />}
                   <ArbitrageScanner />
@@ -93,24 +93,25 @@ function AppContent() {
                   <TokenFactory />
                   <ApiHub />
                 </div>
-              </div>
-              
-              <div className="space-y-12">
-                <LiveGraph />
-                <StackMonitor />
-              </div>
-            </div>
-          </>
-        )}
 
-        {activeViewId === "WHALE_TRACKER" && <WhaleTracker />}
-        {activeViewId === "CHART_TERMINAL" && <ChartTerminal />}
-        {activeViewId === "PORTFOLIO" && <Portfolio />}
-        {activeViewId === "COMMAND_CENTER" && <CommandCenter />}
-        {activeViewId === "SOCIAL_HUB" && <SocialIntelligenceHub />}
-        {activeViewId === "WHITEPAPER_V3" && <WhitepaperV3 />}
-        {activeViewId === "HUNTER_TRACKER" && <HunterTracker />}
-        {activeViewId === "ALPHA_SCANNER" && <AlphaScanner />}
+                {/* Lower Section */}
+                <div className="xl:col-span-full space-y-12">
+                  <LiveGraph />
+                  <StackMonitor />
+                </div>
+              </div>
+            </>
+          )}
+
+          {activeViewId === "WHALE_TRACKER" && <WhaleTracker />}
+          {activeViewId === "CHART_TERMINAL" && <ChartTerminal />}
+          {activeViewId === "PORTFOLIO" && <Portfolio />}
+          {activeViewId === "COMMAND_CENTER" && <CommandCenter />}
+          {activeViewId === "SOCIAL_HUB" && <SocialIntelligenceHub />}
+          {activeViewId === "WHITEPAPER_V3" && <WhitepaperV3 />}
+          {activeViewId === "HUNTER_TRACKER" && <HunterTracker />}
+          {activeViewId === "ALPHA_SCANNER" && <AlphaScanner />}
+        </div>
 
       </div>
     </div>
