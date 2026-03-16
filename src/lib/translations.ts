@@ -316,7 +316,7 @@ export const translations = {
         arb_exchanges: "EXCHANGES INDEXED",
         arb_precision: "ALPHA PRECISION",
         arb_success_history: "RECENTLY SNIPED [SUCCESS]",
-        arb_no_success: "No successful snipes recorded in this session.",
+        arb_no_success: "No verified arbitrage transactions yet.",
 
         // AI Bot Advanced
         bot_price_reply: "CONSULTING ORACLE_V3... SOL: $148.24 | BTC: $64,210. Sentiment: BULLISH.",
@@ -868,7 +868,7 @@ export const translations = {
         arb_exchanges: "EXCHANGES INDEXADOS",
         arb_precision: "PRECISIÓN ALPHA",
         arb_success_history: "EXITOS RECIENTES [SNIPE]",
-        arb_no_success: "No se registraron snipes exitosos en esta sesión.",
+        arb_no_success: "No hay transacciones de arbitraje verificadas aún.",
 
         // AI Bot Basics
         bot_greeting: "NÚCLEO_VYTRONIX_AI EN LÍNEA. Sistema inicializado. Uplink neural establecido. Esperando parámetros de objetivo...",
@@ -1467,7 +1467,7 @@ export const translations = {
         arb_exchanges: "已索引交易所",
         arb_precision: "Alpha 精度",
         arb_success_history: "狙击成功记录 [高盈利]",
-        arb_no_success: "当前会话内暂无成功狙击记录。",
+        arb_no_success: "暂无验证的套利交易。",
         arb_terminal_title: "套利终端",
         arb_verified_data: "已验证 L2 数据",
         arb_atomic_settlement: "原子级结算",

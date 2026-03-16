@@ -5,7 +5,7 @@ import { translations } from "@/lib/translations";
 import { WalletModal } from "./WalletModal";
 
 export function Hero() {
-    const { selectedChain, activeRpcPerChain, wallet, language } = useAppStore();
+    const { selectedChain, activeRpcPerChain, wallet, language, setNetworkMode } = useAppStore();
     const t = translations[language];
     const [launchState, setLaunchState] = useState<"idle" | "core" | "rpc" | "aethrix" | "restore" | "online">("idle");
     const [showStatus, setShowStatus] = useState(false);
@@ -36,6 +36,7 @@ export function Hero() {
 
         setTimeout(() => {
             setLaunchState("idle");
+            setNetworkMode(true);
             window.scrollTo({ top: document.body.scrollHeight, behavior: 'smooth' });
         }, 800);
     };

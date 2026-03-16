@@ -12,7 +12,7 @@ import { formatCurrency } from "@/lib/utils";
 type AgentState = "IDLE" | "SCANNING" | "ANALYZING" | "READY" | "EXECUTED";
 
 export function AegisAgent() {
-    const { globalRankings, wallet, selectedChain, positionSnapshots, executeSwap, addSystemLog, language, audioEnabled, executionParams } = useAppStore();
+    const { globalRankings, wallet, selectedChain, positionSnapshots, executeSwap, addSystemLog, language, audioEnabled, executionParams, networkMode } = useAppStore();
     const { canAccessAlpha } = useAlphaGuard();
     const t = translations[language];
 
@@ -25,6 +25,19 @@ export function AegisAgent() {
     const [logs, setLogs] = useState<string[]>([]);
     const [currentTarget, setCurrentTarget] = useState<AethrixPool | null>(null);
     const [riskProfile, setRiskProfile] = useState<"CONSERVATIVE" | "BALANCED" | "AGGRESSIVE">("BALANCED");
+
+    // Sync state with Network Mode
+    useEffect(() => {
+        if (networkMode) {
+            setAgentState("SCANNING");
+            // Note: addLog uses state, so we must be careful with initial logs
+            setLogs(prev => [...prev.slice(-4), `[${new Date().toISOString().split('T')[1].slice(0, 8)}] AUTO_MODE_INIT: Scanning Tactical Sectors...`]);
+        } else {
+            setAgentState("IDLE");
+            setCurrentTarget(null);
+            setLogs([]);
+        }
+    }, [networkMode]);
 
     // Persistent radar pings for stability and purity
     const [radarPings] = useState(() => [...Array(5)].map(() => ({

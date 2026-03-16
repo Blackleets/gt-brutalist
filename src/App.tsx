@@ -20,8 +20,8 @@ import { SocialIntelligenceHub } from "@/components/modules/SocialIntelligenceHu
 import { WhitepaperV3 } from "@/components/modules/WhitepaperV3";
 import { HunterTracker } from "@/components/modules/HunterTracker";
 import AlphaScanner from "@/pages/AlphaScanner";
-import ArbitrageNetworkModule from "@/modules/arbitrage-network/ArbitrageNetworkModule";
 import { SignalBridge } from "@/components/modules/SignalBridge";
+import { AegisAgent } from "@/components/modules/AegisAgent";
 
 export default function App() {
   return (
@@ -70,6 +70,7 @@ function AppContent() {
               <div className="grid grid-cols-1 xl:grid-cols-3 gap-8">
                 {/* Main Action Area */}
                 <div className="xl:col-span-2 space-y-8">
+                  {networkMode && <AegisAgent />}
                   <ArbitrageScanner />
                 </div>
 
@@ -86,7 +87,6 @@ function AppContent() {
           </>
         )}
 
-        {activeViewId === "ARB_NETWORK" && <ArbitrageNetworkModule />}
         {activeViewId === "WHALE_TRACKER" && <WhaleTracker />}
         {activeViewId === "CHART_TERMINAL" && <ChartTerminal />}
         {activeViewId === "PORTFOLIO" && <Portfolio />}

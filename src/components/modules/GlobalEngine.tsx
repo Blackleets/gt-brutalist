@@ -24,7 +24,8 @@ export function GlobalEngine() {
         addExecutedArb,
         setHunters,
         addHunterSignal,
-        adminConfig
+        adminConfig,
+        networkMode
     } = useAppStore();
 
     const dexWorkerRef = useRef<Worker | null>(null);
@@ -55,8 +56,10 @@ export function GlobalEngine() {
         adminConfigRef.current = adminConfig;
     }, [adminConfig]);
 
-    // Initialize Workers
+    // Initialize Workers (Controlled by NetworkMode)
     useEffect(() => {
+        if (!networkMode) return;
+
         // 1. DEX & FUSION WORKER
         const dexWorker = new Worker(new URL('../../workers/dexWorker.ts', import.meta.url), { type: 'module' });
         dexWorker.onmessage = (e) => {
@@ -327,7 +330,7 @@ export function GlobalEngine() {
             kolWorker.terminate();
             smWorker.terminate();
         };
-    }, [addAlert, addFeedEvent, addKOLSignal, addSystemLog, alertsEnabled, sendTelegramMessage, setAethrixStats, setArbitrageOpportunities, setGlobalRankings, setMarketSentiment, addExecutedArb, executedArbs, telegramEnabled, addHunterSignal, setHunters]);
+    }, [addAlert, addFeedEvent, addKOLSignal, addSystemLog, alertsEnabled, sendTelegramMessage, setAethrixStats, setArbitrageOpportunities, setGlobalRankings, setMarketSentiment, addExecutedArb, executedArbs, telegramEnabled, addHunterSignal, setHunters, networkMode]);
 
     // Sync KOL worker with current market rankings
     useEffect(() => {
