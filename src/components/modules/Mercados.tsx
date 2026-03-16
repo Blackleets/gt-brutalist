@@ -291,16 +291,15 @@ export function Mercados() {
     }
 
     return (
-        <div id="mercados-section" className="border-4 border-black p-8 relative overflow-hidden bg-white shadow-[8px_8px_0_rgba(0,0,0,1)]">
-
-            <div className="max-w-7xl mx-auto flex flex-col md:flex-row gap-12 items-center">
+        <div id="mercados-section" className="border-4 border-black p-6 md:p-8 relative overflow-hidden bg-white shadow-[8px_8px_0_rgba(0,0,0,1)]">
+            <div className="flex flex-col lg:flex-row gap-12 items-center">
                 {/* Left Side: Copy and Controls */}
-                <div className="md:w-1/2 space-y-8 relative z-10">
+                <div className="lg:w-1/2 space-y-8 relative z-10">
                     <div>
                         <div className="bg-black text-[#00ff41] px-4 py-1.5 text-xs font-black uppercase tracking-[0.3em] inline-flex items-center gap-2 mb-4 border-l-4 border-[#00ff41]">
                             <Search size={14} /> Alpha Engine Scanner
                         </div>
-                        <h2 className="text-5xl md:text-8xl font-black uppercase leading-[0.9] tracking-tighter mb-6 italic group">
+                        <h2 className="text-3xl md:text-5xl lg:text-5xl xl:text-6xl font-black uppercase leading-[0.9] tracking-tighter mb-6 italic group break-words">
                             SWIPE FOR<br />
                             <span className="text-[#00ff41] drop-shadow-[4px_4px_0_rgba(0,0,0,1)] selection:bg-black selection:text-[#00ff41]">
                                 MARKET GEMS
@@ -378,7 +377,7 @@ export function Mercados() {
                 </div>
 
                 {/* Right Side: The Swipeable Deck */}
-                <div className="md:w-1/2 w-full flex justify-center items-center min-h-[550px] relative group">
+                <div className="lg:w-1/2 w-full flex justify-center items-center min-h-[550px] relative group">
                     {/* Scanning Animation Overlays */}
                     <div className="absolute inset-0 z-[60] pointer-events-none overflow-hidden">
                         <motion.div
