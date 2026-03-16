@@ -23,6 +23,9 @@ import { SocialIntelligenceHub } from "@/components/modules/SocialIntelligenceHu
 import { WhitepaperV3 } from "@/components/modules/WhitepaperV3";
 import { HunterTracker } from "@/components/modules/HunterTracker";
 import AlphaScanner from "@/pages/AlphaScanner";
+import { NetworkStatistics } from "@/components/modules/NetworkStatistics";
+import { LiveArbitrageFeed } from "@/components/modules/LiveArbitrageFeed";
+import { SignalBridge } from "@/components/modules/SignalBridge";
 
 export default function App() {
   return (
@@ -43,6 +46,7 @@ function AppContent() {
 
       <div className="relative z-10">
         <GlobalEngine />
+        <SignalBridge />
         <Notifications />
         <AIBot />
         <Header />
@@ -65,15 +69,23 @@ function AppContent() {
             {!networkMode && <Hero />}
             <TokenFactory />
             <div className="px-4 md:px-16 py-8">
-              <ArbitrageScanner />
-              <Mercados />
+              <div className="grid grid-cols-1 xl:grid-cols-4 gap-8">
+                {/* Main Action Area */}
+                <div className="xl:col-span-3 space-y-8">
+                  <ArbitrageScanner />
+                  <LiveArbitrageFeed />
+                </div>
+
+                {/* Intelligence & Stats Sidebar */}
+                <div className="space-y-8">
+                  <NetworkStatistics />
+                  <Mercados />
+                  <ApiHub />
+                </div>
+              </div>
             </div>
-            {/* 
-              SwapSimulator temporarily disabled during Vytronix UI simplification
-              <SwapSimulator /> 
-            */}
+            
             <LiveGraph />
-            <ApiHub />
             <StackMonitor />
           </>
         )}

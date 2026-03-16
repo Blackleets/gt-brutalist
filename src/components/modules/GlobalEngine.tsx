@@ -1,6 +1,7 @@
 import { useEffect, useRef } from "react";
 import { useAppStore, RealArbitrageOpportunity, ExecutedArb, HunterSignal, Hunter } from "@/lib/store";
 import { AethrixPool } from "@/lib/aethrix";
+import { ArbitrageIntelligenceSystem } from "@/lib/arbitrageIntelligence";
 
 export function GlobalEngine() {
     const {
@@ -89,7 +90,11 @@ export function GlobalEngine() {
 
                 // Arbitrage Verification & Telegram Broadcasting (SAFE MODE ACTIVE)
                 if (arbOpportunities && arbOpportunities.length > 0) {
-                    const dashboardEntries = [...arbOpportunities.slice(0, 3), ...(arbWatchlist || []).slice(0, 2)];
+                    // We now also pass them through the new INTELLIGENCE system for strict validation
+                    const intelligence = ArbitrageIntelligenceSystem.getInstance();
+                    const { opportunities: strictOpps } = intelligence.processPools(pools);
+                    
+                    const dashboardEntries = [...strictOpps.slice(0, 3), ...(arbWatchlist || []).slice(0, 2)];
                     setArbitrageOpportunities(dashboardEntries);
 
                     const PUB_BROADCAST_ENABLED = true; 
