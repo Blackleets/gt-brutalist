@@ -22,6 +22,9 @@ interface SwapToken {
 
 type SwapState = "idle" | "quoting" | "confirming" | "executing" | "success" | "error";
 
+// Transaction execution module temporarily disabled for development stage.
+const ENABLE_TRANSACTION_EXECUTION = false;
+
 export function SwapSimulator() {
     const { globalRankings, wallet, selectedChain, recordSnapshot, addAlert, nativePrices, executeSwap, addSystemLog, prefilledSwap, setPrefilledSwap, adminConfig, language, audioEnabled, executionParams, setExecutionParams } = useAppStore();
     const t = translations[language];
@@ -348,6 +351,10 @@ export function SwapSimulator() {
         if (priceImpact > 10) return "bg-red-500 text-white border-red-500 hover:bg-red-600";
         return "bg-black text-white border-black hover:bg-[#00ff41] hover:text-black";
     };
+
+    if (!ENABLE_TRANSACTION_EXECUTION) {
+        return null;
+    }
 
     return (
         <section id="swap-simulator-terminal" className="px-4 md:px-16 py-12 md:py-24 relative z-10 w-full overflow-hidden bg-zinc-50 border-b-8 border-black">

@@ -21,6 +21,7 @@ import { translations } from "@/lib/translations";
 import { SocialIntelligenceHub } from "@/components/modules/SocialIntelligenceHub";
 import { WhitepaperV3 } from "@/components/modules/WhitepaperV3";
 import { HunterTracker } from "@/components/modules/HunterTracker";
+import AlphaScanner from "@/pages/AlphaScanner";
 
 export default function App() {
   return (
@@ -66,7 +67,10 @@ function AppContent() {
               <ArbitrageScanner />
               <Mercados />
             </div>
-            <SwapSimulator />
+            {/* 
+              Transaction execution module temporarily disabled for development stage.
+              <SwapSimulator /> 
+            */}
             <LiveGraph />
             <ApiHub />
             <StackMonitor />
@@ -74,8 +78,10 @@ function AppContent() {
         )}
 
         {activeViewId === "WHALE_TRACKER" && <WhaleTracker />}
+        {/* Module hidden for UI simplification during Vytronix development phase */}
         {activeViewId === "CHART_TERMINAL" && <ChartTerminal />}
         {activeViewId === "PORTFOLIO" && <Portfolio />}
+        {/* Module hidden for UI simplification during Vytronix development phase */}
         {activeViewId === "COMMAND_CENTER" && <CommandCenter />}
 
         {activeViewId === "SOCIAL_HUB" && (
@@ -84,9 +90,12 @@ function AppContent() {
           </div>
         )}
 
+        {/* Module hidden for UI simplification during Vytronix development phase */}
         {activeViewId === "WHITEPAPER_V3" && <WhitepaperV3 />}
 
         {activeViewId === "HUNTER_TRACKER" && <HunterTracker />}
+        {/* Module hidden for UI simplification (Replaced by Hunter Core -> Alpha Scanner mapping) */}
+        {activeViewId === "ALPHA_SCANNER" && <AlphaScanner />}
 
         {/* CTA */}
         <section className="px-4 md:px-16 py-12 md:py-20 relative z-10">

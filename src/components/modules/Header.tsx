@@ -257,15 +257,21 @@ export function Header() {
             {/* SECONDARY NAVIGATION BAR */}
             <nav className="flex items-center gap-2 md:gap-4 px-4 md:px-16 py-3 border-b-4 border-black bg-zinc-100 overflow-x-auto whitespace-nowrap scrollbar-hide shadow-[inset_0_-4px_0_rgba(0,0,0,0.1)]">
                 {[
-                    { id: "HOME", label: t.nav_swap },
+                    { id: "HOME", label: t.nav_home },
                     { id: "HUNTER_TRACKER", label: t.nav_hunter },
                     { id: "WHALE_TRACKER", label: t.nav_whale },
                     { id: "SOCIAL_HUB", label: t.nav_social },
-                    { id: "CHART_TERMINAL", label: t.nav_charts },
                     { id: "PORTFOLIO", label: t.nav_analytics },
-                    { id: "COMMAND_CENTER", label: t.nav_cc },
-                    { id: "WHITEPAPER_V3", label: t.nav_whitepaper }
-                ].map((view) => (
+
+                    /* 
+                       Module hidden for UI simplification during Vytronix development phase:
+                       { id: "ALPHA_SCANNER", label: t.nav_alpha_scanner },
+                       { id: "SWAP_CORE", label: t.nav_swap },
+                       { id: "CHART_TERMINAL", label: t.nav_charts },
+                       { id: "COMMAND_CENTER", label: t.nav_cc },
+                       { id: "WHITEPAPER_V3", label: t.nav_whitepaper }
+                    */
+                ].filter(view => view.id).map((view) => (
                     <button
                         key={view.id}
                         onClick={() => setActiveViewId(view.id)}
