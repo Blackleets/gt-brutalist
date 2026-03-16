@@ -53,7 +53,7 @@ export function Hero() {
     };
 
     return (
-        <section className="px-4 md:px-16 pt-20 md:pt-32 pb-24 md:pb-32 border-b-8 border-black relative z-10 w-full overflow-hidden bg-white selection:bg-black selection:text-[#00ff41]">
+        <section className="px-4 md:px-8 pt-20 md:pt-32 pb-24 md:pb-32 border-b-8 border-black relative z-10 w-full overflow-hidden bg-white selection:bg-black selection:text-[#00ff41]">
             {/* AGGRESSIVE BACKGROUND ELEMENTS */}
             <div className="absolute top-0 right-0 w-1/2 h-full border-l-4 border-black/5 pointer-events-none hidden lg:block">
                 <div className="absolute inset-0 opacity-40 bg-[radial-gradient(circle_at_center,_#000_1px,_transparent_1px)] [background-size:24px_24px]"></div>

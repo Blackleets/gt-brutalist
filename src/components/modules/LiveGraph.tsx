@@ -103,7 +103,7 @@ export function LiveGraph() {
     const currentEnv = activeEnvPerChain[selectedChain] || "MAINNET";
 
     return (
-        <section className="px-4 md:px-16 py-8 md:py-16 border-b-4 border-black relative z-10 w-full overflow-hidden bg-white">
+        <div className="border-4 border-black p-6 md:p-8 relative z-10 w-full overflow-hidden bg-white shadow-[8px_8px_0_rgba(0,0,0,1)]">
             <div className="flex flex-col md:flex-row justify-between items-start md:items-end mb-8 md:mb-10 gap-6">
                 <div>
                     <h2 className="text-3xl xs:text-4xl md:text-6xl font-black uppercase leading-tight">
@@ -217,6 +217,6 @@ export function LiveGraph() {
                     </CardContent>
                 </Card>
             </div>
-        </section>
+        </div>
     );
 }

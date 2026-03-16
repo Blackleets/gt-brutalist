@@ -54,7 +54,7 @@ export function StackMonitor() {
     ];
 
     return (
-        <section className="px-4 md:px-16 py-8 md:py-16 border-b-4 border-black relative z-10 bg-white">
+        <div className="border-4 border-black p-6 md:p-8 relative z-10 bg-white shadow-[8px_8px_0_rgba(0,0,0,1)]">
             <h2 className="text-2xl xs:text-3xl md:text-6xl font-black uppercase mb-6 md:mb-12 flex flex-wrap items-center gap-2 md:gap-4">
                 <span>VYTRONIX Stack</span>
                 <span className="text-[8px] md:text-sm bg-black text-[#00ff41] px-2 py-1 animate-pulse">LIVE MONITOR</span>
@@ -88,6 +88,6 @@ export function StackMonitor() {
                     </motion.div>
                 ))}
             </div>
-        </section>
+        </div>
     );
 }

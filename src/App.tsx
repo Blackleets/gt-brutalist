@@ -94,10 +94,12 @@ function AppContent() {
                   <ApiHub />
                 </div>
               </div>
+              
+              <div className="space-y-12">
+                <LiveGraph />
+                <StackMonitor />
+              </div>
             </div>
-            
-            <LiveGraph />
-            <StackMonitor />
           </>
         )}
 
