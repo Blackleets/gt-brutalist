@@ -60,7 +60,7 @@ export class ArbitrageIntelligenceSystem {
     };
 
     private executors: ExecutedArbitrage[] = [];
-    private onSignalCallback?: (signal: ExecutedArbitrage) => void;
+    // private onSignalCallback?: (signal: ExecutedArbitrage) => void;
 
     private constructor() {}
 
@@ -246,20 +246,23 @@ export class ArbitrageIntelligenceSystem {
 
         // Add Triangular Opportunities
         const triangular = this.findTriangularOpportunities(normalized, TRADE_SIZE);
-        triangular.forEach(opp => {
-            activeOpportunities.push(opp);
-            this.stats.opportunitiesDetected++;
-        });
+        activeOpportunities.push(...triangular);
+        if (triangular.length > 0) this.stats.opportunitiesDetected += triangular.length;
 
         this.stats.lastUpdate = Date.now();
-        return { opportunities: activeOpportunities, stats: this.stats };
+        return {
+            opportunities: activeOpportunities,
+            stats: this.stats
+        };
     }
 
+    /*
     private executeArbitrage(opp: ArbitrageOpportunity) {
         // Mock execution disabled to prevent fake data in feed
         // Real on-chain execution logic will be implemented here
         console.log("Arbitrage potential detected, but execution is currently in manual/validation mode:", opp.pair);
     }
+    */
 
     public getExecutedFeed() {
         return this.executors;
@@ -270,6 +273,7 @@ export class ArbitrageIntelligenceSystem {
     }
 
     public onSignal(cb: (signal: ExecutedArbitrage) => void) {
-        this.onSignalCallback = cb;
+        // this.onSignalCallback = cb;
+        console.log("Signal listener attached:", cb.name);
     }
 }
