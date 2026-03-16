@@ -65,18 +65,32 @@ function AppContent() {
         {activeViewId === "HOME" && (
           <>
             {!networkMode && <Hero />}
-            <TokenFactory />
-            <div className="px-4 md:px-16 py-8">
-              <div className="grid grid-cols-1 xl:grid-cols-3 gap-8">
-                {/* Main Action Area */}
-                <div className="xl:col-span-2 space-y-8">
+            <div className="max-w-[1400px] mx-auto px-4 md:px-8 space-y-12 py-12">
+              <div className="grid grid-cols-1 xl:grid-cols-3 gap-12">
+                {/* Main Content Area */}
+                <div className="xl:col-span-2 space-y-12">
+                  <Mercados />
                   {networkMode && <AegisAgent />}
                   <ArbitrageScanner />
                 </div>
 
-                {/* Intelligence & Stats Sidebar */}
-                <div className="space-y-8">
-                  <Mercados />
+                {/* Intelligence & Sidebar Tools */}
+                <div className="space-y-12">
+                  <div className="bg-black text-[#00ff41] border-4 border-black p-6 shadow-[8px_8px_0_rgba(0,0,0,1)]">
+                    <h3 className="text-xl font-black uppercase mb-4 italic">System Status</h3>
+                    <div className="space-y-3 text-[10px] font-mono uppercase">
+                      <div className="flex justify-between border-b border-[#00ff41]/20 pb-1">
+                        <span>Scanner Node</span>
+                        <span className="text-[#00ff41]">Synchronized</span>
+                      </div>
+                      <div className="flex justify-between border-b border-[#00ff41]/20 pb-1">
+                        <span>Latency Uplink</span>
+                        <span className="text-[#00ff41]">Active</span>
+                      </div>
+                    </div>
+                  </div>
+                  
+                  <TokenFactory />
                   <ApiHub />
                 </div>
               </div>

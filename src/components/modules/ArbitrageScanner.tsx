@@ -54,7 +54,7 @@ export function ArbitrageScanner() {
     if (!networkMode) return null;
 
     return (
-        <section className="px-4 md:px-16 py-8 md:py-12 border-b-4 border-black relative z-10 bg-black text-white">
+        <div className="border-4 border-black p-8 relative z-10 bg-black text-white shadow-[8px_8px_0_rgba(0,0,0,1)]">
             {/* Background Grid Pattern */}
             <div
                 className="absolute inset-0 opacity-10 pointer-events-none grid-pattern-green"
@@ -334,6 +334,6 @@ export function ArbitrageScanner() {
                     </div>
                 </div >
             </div >
-        </section >
+        </div>
     );
 }

@@ -59,7 +59,7 @@ export function TokenFactory() {
     };
 
     return (
-        <section className="px-4 md:px-16 py-12 bg-[#fffc20] border-b-8 border-black relative z-10">
+        <div className="bg-[#fffc20] border-4 border-black p-8 relative z-10 shadow-[8px_8px_0_rgba(0,0,0,1)]">
             <div className="flex flex-col md:flex-row gap-12 max-w-[1400px] mx-auto">
 
                 {/* LEFT: FORM */}
@@ -208,6 +208,6 @@ export function TokenFactory() {
                     </div>
                 </div>
             </div>
-        </section>
+        </div>
     );
 }

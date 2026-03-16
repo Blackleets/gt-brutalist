@@ -144,7 +144,7 @@ export function AegisAgent() {
     };
 
     return (
-        <section className="px-4 md:px-16 py-12 relative z-10">
+        <div className="relative z-10 bg-zinc-50 border-4 border-black p-8 shadow-[8px_8px_0_rgba(0,0,0,1)]">
             <div className="flex flex-col lg:flex-row gap-8 items-stretch h-full">
 
                 {/* Sentinel Visualizer Section */}
@@ -362,6 +362,6 @@ export function AegisAgent() {
                     </div>
                 </div>
             </div>
-        </section>
+        </div>
     );
 }

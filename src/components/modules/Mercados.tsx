@@ -291,11 +291,7 @@ export function Mercados() {
     }
 
     return (
-        <section id="mercados-section" className="px-4 md:px-16 py-12 md:py-20 relative overflow-hidden bg-white">
-            {/* Background Text Overlay */}
-            <div className="absolute top-0 right-0 text-[10rem] md:text-[20rem] font-black text-black opacity-[0.03] leading-none pointer-events-none select-none -translate-y-12 translate-x-12 uppercase italic">
-                {t.market_swipe || "ALPHA"}
-            </div>
+        <div id="mercados-section" className="border-4 border-black p-8 relative overflow-hidden bg-white shadow-[8px_8px_0_rgba(0,0,0,1)]">
 
             <div className="max-w-7xl mx-auto flex flex-col md:flex-row gap-12 items-center">
                 {/* Left Side: Copy and Controls */}
@@ -460,6 +456,6 @@ export function Mercados() {
             {/* Aesthetic Borders */}
             <div className="absolute top-0 left-0 w-20 h-20 border-t-8 border-l-8 border-black pointer-events-none" />
             <div className="absolute bottom-0 right-0 w-20 h-20 border-b-8 border-r-8 border-black pointer-events-none" />
-        </section>
+        </div>
     );
 }

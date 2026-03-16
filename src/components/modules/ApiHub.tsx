@@ -30,8 +30,8 @@ export function ApiHub() {
     };
 
     return (
-        <section className="px-4 md:px-16 py-8 md:py-16 border-b-4 border-black relative z-10 bg-[#fffc20]">
-            <div className="max-w-4xl mx-auto">
+        <div className="border-4 border-black p-6 md:p-8 relative z-10 bg-[#fffc20] shadow-[8px_8px_0_rgba(0,0,0,1)]">
+            <div>
                 <h2 className="text-3xl xs:text-4xl md:text-6xl font-black uppercase mb-6 md:mb-8 border-b-4 border-black pb-4 leading-tight">
                     {t.apihub_title}
                 </h2>
@@ -98,6 +98,6 @@ export function ApiHub() {
                     </motion.div>
                 </div>
             </div>
-        </section>
+        </div>
     );
 }
