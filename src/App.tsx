@@ -11,7 +11,8 @@ import { Notifications } from "@/components/modules/Alerts";
 import { TokenFactory } from "@/components/modules/TokenFactory";
 import { Portfolio } from "@/components/modules/Portfolio";
 import { GlobalEngine } from "@/components/modules/GlobalEngine";
-import { SwapSimulator } from "@/components/modules/SwapSimulator";
+// SwapSimulator temporarily disabled during Vytronix UI simplification
+// import { SwapSimulator } from "@/components/modules/SwapSimulator";
 import { ArbitrageScanner } from "@/components/modules/ArbitrageScanner";
 import { WhaleTracker } from "@/components/modules/WhaleTracker";
 import { ChartTerminal } from "@/components/modules/ChartTerminal";
@@ -68,7 +69,7 @@ function AppContent() {
               <Mercados />
             </div>
             {/* 
-              Transaction execution module temporarily disabled for development stage.
+              SwapSimulator temporarily disabled during Vytronix UI simplification
               <SwapSimulator /> 
             */}
             <LiveGraph />
