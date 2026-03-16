@@ -2,10 +2,8 @@
 import { useState, useEffect } from "react";
 import { motion } from "framer-motion";
 import { ArbitrageIntelligenceSystem, NetworkStats } from "@/lib/arbitrageIntelligence";
-import { useAppStore } from "@/lib/store";
 
 export function NetworkStatistics() {
-    const { globalRankings } = useAppStore();
     const [stats, setStats] = useState<NetworkStats>({
         pairsScanned: 0,
         opportunitiesDetected: 0,
@@ -18,15 +16,17 @@ export function NetworkStatistics() {
         const engine = ArbitrageIntelligenceSystem.getInstance();
         
         const update = () => {
-            const result = engine.processPools(globalRankings);
-            setStats({...result.stats});
+            const currentStats = engine.getNetworkStats();
+            if (currentStats) {
+                setStats({...currentStats});
+            }
         };
 
-        const interval = setInterval(update, 10000); // 10s as requested
+        const interval = setInterval(update, 5000);
         update();
 
         return () => clearInterval(interval);
-    }, [globalRankings]);
+    }, []);
 
     return (
         <motion.div 
@@ -60,7 +60,7 @@ export function NetworkStatistics() {
 
             <div className="mt-4 pt-2 border-t-2 border-dashed border-zinc-800 flex justify-between items-center text-[9px] font-black text-zinc-500 uppercase">
                 <span>Real-Time Processing</span>
-                <span>Last Upd: {new Date(stats.lastUpdate).toLocaleTimeString()}</span>
+                <span>Last Upd: {stats.lastUpdate > 0 ? new Date(stats.lastUpdate).toLocaleTimeString() : "PENDING"}</span>
             </div>
         </motion.div>
     );

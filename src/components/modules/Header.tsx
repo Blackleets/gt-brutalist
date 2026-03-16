@@ -258,6 +258,7 @@ export function Header() {
             <nav className="flex items-center gap-2 md:gap-4 px-4 md:px-16 py-3 border-b-4 border-black bg-zinc-100 overflow-x-auto whitespace-nowrap scrollbar-hide shadow-[inset_0_-4px_0_rgba(0,0,0,0.1)]">
                 {[
                     { id: "HOME", label: t.nav_home },
+                    { id: "ARB_NETWORK", label: t.nav_arb_network },
                     { id: "HUNTER_TRACKER", label: t.nav_hunter },
                     { id: "WHALE_TRACKER", label: t.nav_whale },
                     { id: "SOCIAL_HUB", label: t.nav_social },

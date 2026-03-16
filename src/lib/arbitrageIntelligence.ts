@@ -241,8 +241,6 @@ export class ArbitrageIntelligenceSystem {
                 const best = routes.sort((a, b) => b.netProfit - a.netProfit)[0];
                 activeOpportunities.push(best);
                 this.stats.opportunitiesDetected++;
-                
-                if (Math.random() > 0.85) this.executeArbitrage(best);
             }
         });
 
@@ -251,7 +249,6 @@ export class ArbitrageIntelligenceSystem {
         triangular.forEach(opp => {
             activeOpportunities.push(opp);
             this.stats.opportunitiesDetected++;
-            if (Math.random() > 0.92) this.executeArbitrage(opp);
         });
 
         this.stats.lastUpdate = Date.now();
@@ -259,36 +256,17 @@ export class ArbitrageIntelligenceSystem {
     }
 
     private executeArbitrage(opp: ArbitrageOpportunity) {
-        const wallets = ["7Gh...92A", "3K8...1fB", "vYt...X9z", "0x2...f44e", "5h3...9fdH"];
-        const txHash = opp.chain === 'solana' 
-            ? Array.from({length: 44}, () => "123456789ABCDEFGHJKLMNPQRSTUVWXYZabcdefghijkmnopqrstuvwxyz"[Math.floor(Math.random()*58)]).join('')
-            : "0x" + Array.from({length: 64}, () => "0123456789abcdef"[Math.floor(Math.random()*16)]).join('');
-
-        const executed: ExecutedArbitrage = {
-            id: `exec-${Date.now()}-${Math.random()}`,
-            wallet: wallets[Math.floor(Math.random() * wallets.length)],
-            pair: opp.pair,
-            route: opp.route,
-            spread: opp.spread,
-            netProfit: opp.netProfit,
-            txHash,
-            timestamp: Date.now(),
-            chain: opp.chain
-        };
-
-        this.executors.unshift(executed);
-        if (this.executors.length > 50) this.executors.pop();
-
-        this.stats.arbitragesExecuted++;
-        this.stats.networkProfitToday += executed.netProfit;
-
-        if (this.onSignalCallback) {
-            this.onSignalCallback(executed);
-        }
+        // Mock execution disabled to prevent fake data in feed
+        // Real on-chain execution logic will be implemented here
+        console.log("Arbitrage potential detected, but execution is currently in manual/validation mode:", opp.pair);
     }
 
     public getExecutedFeed() {
         return this.executors;
+    }
+
+    public getNetworkStats() {
+        return this.stats;
     }
 
     public onSignal(cb: (signal: ExecutedArbitrage) => void) {

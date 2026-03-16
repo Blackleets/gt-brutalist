@@ -3,19 +3,19 @@ import { useState, useEffect } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import { ExternalLink, Zap } from "lucide-react";
 import { ArbitrageIntelligenceSystem, ExecutedArbitrage } from "@/lib/arbitrageIntelligence";
-import { useAppStore } from "@/lib/store";
 
 export function LiveArbitrageFeed() {
-    const { globalRankings } = useAppStore();
     const [events, setEvents] = useState<ExecutedArbitrage[]>([]);
 
     useEffect(() => {
         const engine = ArbitrageIntelligenceSystem.getInstance();
         
         // Listener for new signals
-        engine.onSignal((signal) => {
+        const handleSignal = (signal: ExecutedArbitrage) => {
             setEvents(prev => [signal, ...prev].slice(0, 10));
-        });
+        };
+
+        engine.onSignal(handleSignal);
 
         // Initial load - use a microtask to avoid synchronous cascading renders
         const initialFeed = engine.getExecutedFeed().slice(0, 10);
@@ -23,13 +23,10 @@ export function LiveArbitrageFeed() {
             setEvents(initialFeed);
         });
 
-        // Periodic processing to simulate live engine activity
-        const interval = setInterval(() => {
-            engine.processPools(globalRankings);
-        }, 3000);
-
-        return () => clearInterval(interval);
-    }, [globalRankings]);
+        return () => {
+            // Signal cleanup if supported by engine
+        };
+    }, []);
 
     return (
         <div className="bg-black border-4 border-black p-4 md:p-6 shadow-[8px_8px_0_rgba(0,0,0,1)] text-white w-full">
@@ -89,9 +86,9 @@ export function LiveArbitrageFeed() {
                             </div>
                         </motion.div>
                     )) : (
-                        <div className="flex flex-col items-center justify-center py-20 text-zinc-700 border-2 border-dashed border-zinc-900">
+                        <div className="flex flex-col items-center justify-center py-20 text-zinc-700 border-2 border-dashed border-zinc-900 text-center">
                             <Zap className="w-8 h-8 mb-4 opacity-20" />
-                            <div className="text-xs font-black uppercase tracking-widest">Scanning Blockchain for Arbitrage Events...</div>
+                            <div className="text-xs font-black uppercase tracking-widest">No verified arbitrage transactions yet.</div>
                         </div>
                     )}
                 </AnimatePresence>
