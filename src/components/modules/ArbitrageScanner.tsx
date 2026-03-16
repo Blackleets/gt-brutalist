@@ -63,8 +63,8 @@ export function ArbitrageScanner() {
             <div className="relative z-10">
                 <div className="flex flex-col md:flex-row justify-between items-start md:items-end gap-4 md:gap-6 mb-8 border-b-4 border-[#00ff41]/50 pb-6">
                     <div>
-                        <h2 className="text-3xl xs:text-4xl md:text-6xl font-black uppercase text-[#00ff41] flex items-center gap-3 md:gap-4 leading-tight">
-                            <ArrowLeftRight className="w-8 h-8 md:w-16 md:h-16 shrink-0" />
+                        <h2 className="text-3xl xs:text-4xl lg:text-5xl font-black uppercase text-[#00ff41] flex items-center gap-3 md:gap-4 leading-tight">
+                            <ArrowLeftRight className="w-8 h-8 md:w-12 md:h-12 shrink-0" />
                             {tr.arb_title}
                         </h2>
                         <p className="text-sm xs:text-base md:text-xl font-bold text-[#00ff41]/70 mt-1 md:mt-2 uppercase tracking-widest flex items-center gap-2">
