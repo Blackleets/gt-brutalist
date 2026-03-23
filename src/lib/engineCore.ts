@@ -83,8 +83,7 @@ export function calculateArbitrageOpportunities(
     const tokenGroups = new Map<string, AethrixPool[]>();
 
     const SIMULATED_TRADE_SIZE = 1000; 
-    const MIN_LIQUIDITY = 20000;       
-    const MIN_NET_ROI = 1.0;            
+    const MIN_LIQUIDITY = 100000;       
 
     const MAJOR_ASSETS = ["SOL", "BNB", "ETH", "BTC", "USDC", "USDT"];
 
@@ -121,6 +120,7 @@ export function calculateArbitrageOpportunities(
         }
 
         // 1. Cross-Chain Protection: Reject spreads across different chains (Safe Mode Priority)
+        // Ensure chain(buyDEX) == chain(sellDEX)
         if (minPool.chain !== maxPool.chain) {
             rejected.push({
                 id: arbId,
@@ -147,8 +147,8 @@ export function calculateArbitrageOpportunities(
             return;
         }
 
-        // 3. Unrealistic Spread Gate: > 50% is almost always a broken pool/liquidity imbalance
-        if (spread > 50.0 || isNaN(spread)) {
+        // 3. Spread Gate
+        if (spread < 0.8 || spread > 50.0 || isNaN(spread)) {
             rejected.push({
                 id: arbId,
                 token: minPool.baseToken.symbol,
@@ -162,6 +162,7 @@ export function calculateArbitrageOpportunities(
 
         // 4. Liquidity Verification
         if (minPool.liquidityUsd < MIN_LIQUIDITY || maxPool.liquidityUsd < MIN_LIQUIDITY) {
+
             // ... (keep potentialArb creation)
             const potentialArb = {
                 id: arbId,
@@ -197,9 +198,9 @@ export function calculateArbitrageOpportunities(
             return;
         }
 
-        // 5. Multi-Size Executable Quote Validation ($250, $500, $1000)
-        // A signal is ONLY verified if it remains profitable at all three sizes.
-        const VALIDATION_SIZES = [250, 500, 1000];
+        // 5. Multi-Size Executable Quote Validation ($500, $1000)
+        // Ensure trade size can be executed without major price impact
+        const VALIDATION_SIZES = [500, 1000];
         let passesAllSizes = true;
         let finalNetProfitROI = 0;
         let finalNetProfitUsd = 0;
@@ -224,15 +225,18 @@ export function calculateArbitrageOpportunities(
             const gSellOutput = tBought * eSellPrice;
             const sFeesUsd = (size * 0.003) + (gSellOutput * 0.003);
             const nProfitUsd = (gSellOutput - size) - sFeesUsd - nFeeUsd;
-            const nProfitROI = (nProfitUsd / size) * 100;
+            
+            const totalSlippagePct = (bSlippage + sSlippage) * 100;
+            const feePct = ((sFeesUsd + nFeeUsd) / size) * 100;
+            const realProfitPct = spread - feePct - totalSlippagePct;
 
-            if (nProfitROI < MIN_NET_ROI) {
+            if (realProfitPct < 0.5) {
                 passesAllSizes = false;
                 break;
             }
 
             if (size === 1000) {
-                finalNetProfitROI = nProfitROI;
+                finalNetProfitROI = realProfitPct;
                 finalNetProfitUsd = nProfitUsd;
                 finalExecutionBuyPrice = eBuyPrice;
                 finalExecutionSellPrice = eSellPrice;
@@ -276,66 +280,9 @@ export function calculateArbitrageOpportunities(
     });
 
     // 9. Real Profit Detection (On-Chain Pattern Simulation)
-    // In a production environment with a node, this would listen to Mempool/Swap events.
-    // For this engine, we "detect" when a verified opportunity is captured by a bot.
+    // REMOVED INVALID DATA (fake executions). Only real trades should be exposed.
     const realProfits: ExecutedArb[] = [];
-    const PRO_BOT_WALLETS = [
-        "0x742d35Cc6634C0532925a3b844Bc454e4438f44e",
-        "0x28C6c06290CC3F95179391085602914104928231",
-        "0x0000000000005411075e71Ad6974fb239330B5E0",
-        "0xb5d80479f643033f5d52f6795f70f643e2e5058c"
-    ];
-
-    opportunities.forEach(opp => {
-        // High-confidence, High-profit opportunities have a high chance of being bot-captured
-        if (opp.profit > 2.0 && Math.random() > 0.7) {
-            const wallet = PRO_BOT_WALLETS[Math.floor(Math.random() * PRO_BOT_WALLETS.length)];
-            const fakeHash = `0x${Array.from({length: 64}, () => Math.floor(Math.random() * 16).toString(16)).join('')}`;
-            
-            realProfits.push({
-                id: `profit-${Date.now()}-${opp.token}`,
-                wallet: wallet,
-                token: opp.token,
-                profitUsd: opp.netProfitAfterFees,
-                spread: opp.profit,
-                dexFrom: opp.buyExchange,
-                dexTo: opp.sellExchange,
-                timestamp: Date.now(),
-                hash: fakeHash,
-                sizeUsd: opp.simulatedSize
-            });
-        }
-    });
-
-    // 10. Hunter Tracking (BNB Chain Specialist)
     const hunterSignals: HunterSignal[] = [];
-    const KNOWN_BNB_HUNTERS = [
-        { address: "0x2638f29A21", alias: "SHARK_01", tier: "High Frequency Hunter" },
-        { address: "0x7F217b11B9", alias: "ARB_KING", tier: "Elite Hunter" },
-        { address: "0xeB2d1D65CC", alias: "SWAP_GHOST", tier: "Hunter" }
-    ];
-
-    // Detect patterns where a verified arbitrage is captured on BNB
-    opportunities.forEach(opp => {
-        if (opp.buyChain === "bsc" && opp.profit > 1.5 && Math.random() > 0.8) {
-            const hunter = KNOWN_BNB_HUNTERS[Math.floor(Math.random() * KNOWN_BNB_HUNTERS.length)];
-            const fakeHash = `0x${Array.from({length: 64}, () => Math.floor(Math.random() * 16).toString(16)).join('')}`;
-            
-            hunterSignals.push({
-                id: `hunter-${Date.now()}-${opp.token}`,
-                hunter: hunter.address,
-                tier: hunter.tier,
-                token: opp.token,
-                buyDex: opp.buyExchange,
-                sellDex: opp.sellExchange,
-                sizeUsd: opp.simulatedSize,
-                profitUsd: opp.netProfitAfterFees,
-                profitPct: opp.profit,
-                timestamp: Date.now(),
-                hash: fakeHash
-            });
-        }
-    });
 
     return { opportunities, rejected, watchlist, realProfits, hunterSignals };
 }

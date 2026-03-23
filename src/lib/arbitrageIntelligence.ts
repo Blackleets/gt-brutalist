@@ -193,7 +193,7 @@ export class ArbitrageIntelligenceSystem {
         });
 
         const activeOpportunities: ArbitrageOpportunity[] = [];
-        const TRADE_SIZE = 5000;
+        const TRADE_SIZE = 1000;
 
         // Linear Arbitrage with SMART ROUTING
         groups.forEach((data, pair) => {
@@ -217,8 +217,9 @@ export class ArbitrageIntelligenceSystem {
                     
                     // Calculation of net profit including fees and impact
                     const netProfit = (TRADE_SIZE * (spread / 100)) - (TRADE_SIZE * 0.006) - (TRADE_SIZE * (impact / 100));
+                    const realProfitPct = (netProfit / TRADE_SIZE) * 100;
 
-                    if (spread > 0.5 && depth.valid && impact < 0.4 && netProfit > 0) {
+                    if (spread >= 0.8 && depth.valid && impact < 0.4 && realProfitPct >= 0.5) {
                         routes.push({
                             id: `route-${buy.id}-${sell.id}`,
                             pair,

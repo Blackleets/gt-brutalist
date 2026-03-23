@@ -116,19 +116,21 @@ export function GlobalEngine() {
 
                         const isFresh = (now - (e.data.timestamp || 0)) < 30000;
 
-                        if (arb.profit >= 1.0 && (isGlobalCooldownOver || isProfitExplosion) && isTokenCooldownOver && isFresh && arb.classification === "VERIFIED") {
+                        if (arb.profit >= 0.5 && (isGlobalCooldownOver || isProfitExplosion) && isTokenCooldownOver && isFresh && arb.classification === "VERIFIED") {
                             if (sendTelegramMessage && PUB_BROADCAST_ENABLED && telegramEnabled) {
+                                const calculatedSpread = (((arb.sellPrice / arb.buyPrice) - 1) * 100).toFixed(2);
                                 const tgMsg = 
-                                    `⚡ VYTRONIX ARBITRAGE OPPORTUNITY\n` +
-                                    `━━━━━━━━━━━━━━━━\n\n` +
-                                    `💎 Token: ${arb.token}\n\n` +
-                                    `🛒 Buy on: ${arb.buyExchange}\n` +
-                                    `💸 Sell on: ${arb.sellExchange}\n\n` +
-                                    `📦 Trade Size: $${arb.simulatedSize}\n` +
-                                    `📈 Potential Profit: +${arb.profit}%\n\n` +
-                                    `💧 Liquidity: $${(arb.liquidityLevel / 1000).toFixed(1)}K\n\n` +
-                                    `━━━━━━━━━━━━━━━━\n` +
-                                    `⚡ Detected by Vytronix Engine`;
+                                    `⚡ EXECUTABLE ARBITRAGE\n\n` +
+                                    `Token: ${arb.token}\n\n` +
+                                    `Buy → ${arb.buyExchange} (${arb.buyChain})\n` +
+                                    `Sell → ${arb.sellExchange} (${arb.sellChain})\n\n` +
+                                    `Spread: ${calculatedSpread}%\n` +
+                                    `Real Profit: ${arb.profit}%\n\n` +
+                                    `Liquidity: $${arb.liquidityLevel.toLocaleString()}\n\n` +
+                                    `🧠 Vytronix Insight:\n` +
+                                    `Executable same-chain arbitrage detected with sufficient liquidity.\n\n` +
+                                    `⚠ Execution:\n` +
+                                    `Low slippage, fast execution required`;
 
                                 sendTelegramMessage(tgMsg, "https://vytronix.io/vytronix-bot.jpg");
                                 lastArbBroadcastRef.current[arb.token] = { time: now, profit: arb.profit };
