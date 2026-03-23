@@ -452,6 +452,61 @@ export function Mercados() {
                 </div>
             </div>
 
+            {/* Social Signals Feed */}
+            <div className="mt-16 lg:mt-24 pt-10 border-t-8 border-black relative z-10 w-full mb-8">
+                <div className="absolute -top-6 left-4 md:left-8 bg-white px-4 py-2 border-4 border-black shadow-[4px_4px_0_rgba(0,0,0,1)] flex items-center gap-3">
+                    <Activity size={18} className="text-[#00ff41] animate-pulse" />
+                    <span className="bg-black text-[#00ff41] px-3 py-1 text-xs font-black uppercase tracking-[0.2em]">Live Intel Feed</span>
+                </div>
+
+                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6 mt-6">
+                    {[
+                        {
+                            id: 1,
+                            text: "Smart money wallets are aggressively accumulating $WIF on dips. Clear accumulation pattern.",
+                            insight: "Smart money clustering indicates potential markup phase approaching."
+                        },
+                        {
+                            id: 2,
+                            text: "Solana MEV bots are extracting less value this hour. Gas wars cooling down.",
+                            insight: "Favorable conditions for manual high-frequency sniping. Lower slippage risk."
+                        },
+                        {
+                            id: 3,
+                            text: "Just tracked a 500 ETH move to a brand new protocol. No frontend yet.",
+                            insight: "Likely a stealth launch preparation or private pool seeding. Monitoring."
+                        }
+                    ].map(signal => (
+                        <div key={signal.id} className="bg-zinc-950 text-zinc-100 border-4 border-black p-5 relative flex flex-col shadow-[8px_8px_0_rgba(0,0,0,1)] group hover:-translate-y-1 transition-transform cursor-default">
+                            <div className="absolute inset-0 opacity-[0.03] pointer-events-none bg-[linear-gradient(to_right,#808080_1px,transparent_1px),linear-gradient(to_bottom,#808080_1px,transparent_1px)] bg-[size:20px_20px]"></div>
+                            
+                            <div className="text-[10px] font-black uppercase tracking-[0.2em] mb-4 flex items-center justify-between border-b-2 border-zinc-800 pb-3">
+                                <span className="bg-[#00ff41]/20 text-[#00ff41] px-2 py-1 flex items-center gap-2 border border-[#00ff41]/50">
+                                    🧠 SOCIAL SIGNAL
+                                </span>
+                                <Zap size={12} className="text-[#00ff41]" />
+                            </div>
+                            
+                            <div className="text-sm lg:text-base font-bold italic text-zinc-300 mb-6 flex-grow">
+                                "{signal.text}"
+                            </div>
+                            
+                            <div className="bg-[#00ff41]/10 border-l-4 border-[#00ff41] p-3 mt-auto relative overflow-hidden">
+                                <div className="absolute -right-2 -top-2 text-[#00ff41] opacity-10">
+                                    <Activity size={40} />
+                                </div>
+                                <div className="flex items-center gap-1.5 text-[#00ff41] text-[10px] font-black uppercase tracking-widest mb-2">
+                                    ⚡ INSIGHT
+                                </div>
+                                <div className="text-xs text-zinc-400 font-bold leading-relaxed relative z-10">
+                                    {signal.insight}
+                                </div>
+                            </div>
+                        </div>
+                    ))}
+                </div>
+            </div>
+
             {/* Aesthetic Borders */}
             <div className="absolute top-0 left-0 w-20 h-20 border-t-8 border-l-8 border-black pointer-events-none" />
             <div className="absolute bottom-0 right-0 w-20 h-20 border-b-8 border-r-8 border-black pointer-events-none" />

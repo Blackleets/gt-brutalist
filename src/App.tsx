@@ -7,7 +7,6 @@ import { ApiHub } from "@/components/modules/ApiHub";
 import { LiveGraph } from "@/components/modules/LiveGraph";
 import { StackMonitor } from "@/components/modules/StackMonitor";
 import { Notifications } from "@/components/modules/Alerts";
-import { TokenFactory } from "@/components/modules/TokenFactory";
 import { Portfolio } from "@/components/modules/Portfolio";
 import { GlobalEngine } from "@/components/modules/GlobalEngine";
 import { ArbitrageScanner } from "@/components/modules/ArbitrageScanner";
@@ -90,7 +89,6 @@ function AppContent() {
                     </div>
                   </div>
                   
-                  <TokenFactory />
                   <ApiHub />
                 </div>
 
