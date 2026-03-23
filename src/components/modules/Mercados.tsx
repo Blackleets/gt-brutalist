@@ -1,4 +1,4 @@
-import { useState, useCallback, memo } from "react";
+import { useState, useCallback, memo, useEffect } from "react";
 import { useAppStore } from "@/lib/store";
 import { AethrixPool } from "@/lib/aethrix";
 import { motion, AnimatePresence, useMotionValue, useTransform, PanInfo } from "framer-motion";
@@ -21,6 +21,15 @@ import { useAlphaGuard } from "@/modules/alpha/AlphaGuard";
 import { translations } from "@/lib/translations";
 
 // --- SUB-COMPONENT: ALPHA DECK CARD ---
+
+interface RealSignal {
+    id: string;
+    category: string;
+    token: string;
+    title: string;
+    insight: string;
+    source: string;
+}
 
 interface AlphaCardProps {
     pool: AethrixPool;
@@ -230,6 +239,47 @@ export function Mercados() {
     const [currentIndex, setCurrentIndex] = useState(0);
     const [isRefreshing, setIsRefreshing] = useState(false);
     const [socialFilter, setSocialFilter] = useState("ALL");
+    const [realSignals, setRealSignals] = useState<RealSignal[]>([]);
+
+    useEffect(() => {
+        let mounted = true;
+        const fetchRealIntel = async () => {
+            try {
+                // Using CryptoCompare Live News as a source for real market publications
+                const res = await fetch("https://min-api.cryptocompare.com/data/v2/news/?lang=EN");
+                const data = await res.json();
+                if (data && data.Data && mounted) {
+                    const extracted = data.Data.slice(0, 15).map((n: { id: string, categories: string, title: string, body: string, source_info?: { name: string } }) => {
+                        const cats = n.categories.split('|');
+                        const tokenMatch = n.title.match(/\b[A-Z]{3,5}\b/);
+                        const token = tokenMatch ? tokenMatch[0] : (cats.find((c: string) => c === c.toUpperCase() && c.length <= 5) || "BTC");
+                        let category = cats.length > 0 ? cats[0].toUpperCase() : "GENERAL";
+                        if (category === "BTC" || category === "ETH" || category === "ALTCOIN") category = "MARKET";
+                        
+                        return {
+                            id: n.id,
+                            category: category.substring(0, 10),
+                            token: token,
+                            title: n.title,
+                            insight: n.body.length > 100 ? n.body.substring(0, 100) + "..." : n.body,
+                            source: n.source_info?.name || "CRYPTO"
+                        };
+                    });
+                    setRealSignals(extracted);
+                }
+            } catch (err) {
+                console.error("Failed to fetch real social signals:", err);
+            }
+        };
+        fetchRealIntel();
+        
+        // Refresh every 60s
+        const interval = setInterval(fetchRealIntel, 60000);
+        return () => { 
+            mounted = false; 
+            clearInterval(interval);
+        };
+    }, []);
 
     const refreshData = useCallback(async () => {
         setIsRefreshing(true);
@@ -461,7 +511,7 @@ export function Mercados() {
                 </div>
 
                 <div className="flex gap-2 mt-2 mb-6 overflow-x-auto pb-2 scrollbar-hide">
-                    {["ALL", "WHALE", "L2 DEV", "MEMES"].map(cat => (
+                    {["ALL", "MARKET", "EXCHANGE", "TECHNOLOGY", "BUSINESS"].map(cat => (
                         <button 
                             key={cat}
                             onClick={() => setSocialFilter(cat)}
@@ -472,80 +522,67 @@ export function Mercados() {
                     ))}
                 </div>
 
-                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-                    {[
-                        {
-                            id: 1,
-                            category: "WHALE",
-                            token: "WIF",
-                            text: "Smart money wallets are aggressively accumulating $WIF on dips. Clear accumulation pattern.",
-                            insight: "Smart money clustering indicates potential markup phase approaching."
-                        },
-                        {
-                            id: 2,
-                            category: "L2 DEV",
-                            token: "OP",
-                            text: "Optimism MEV bots are extracting less value this hour. Gas wars cooling down.",
-                            insight: "Favorable conditions for manual high-frequency sniping. Lower slippage risk."
-                        },
-                        {
-                            id: 3,
-                            category: "MEMES",
-                            token: "PEPE",
-                            text: "Just tracked a 500 ETH move to a brand new MEME protocol. No frontend yet.",
-                            insight: "Likely a stealth launch preparation or private pool seeding. Monitoring."
-                        }
-                    ].filter(s => socialFilter === "ALL" || s.category === socialFilter).map(signal => (
-                        <div key={signal.id} className="bg-zinc-950 text-zinc-100 border-4 border-black p-5 relative flex flex-col shadow-[8px_8px_0_rgba(0,0,0,1)] group hover:-translate-y-1 hover:shadow-[12px_12px_0_rgba(0,255,65,0.7),-4px_-4px_0_rgba(255,0,0,0.5)] transition-all duration-200 cursor-default">
-                            {/* CRT SCANLINE EFFECT */}
-                            <div className="absolute inset-0 opacity-0 group-hover:opacity-10 pointer-events-none bg-[repeating-linear-gradient(0deg,transparent,transparent_2px,#00ff41_2px,#00ff41_4px)] transition-opacity z-20"></div>
-                            <div className="absolute inset-0 opacity-[0.03] pointer-events-none bg-[linear-gradient(to_right,#808080_1px,transparent_1px),linear-gradient(to_bottom,#808080_1px,transparent_1px)] bg-[size:20px_20px]"></div>
-                            
-                            <div className="text-[10px] font-black uppercase tracking-[0.2em] mb-4 flex items-center justify-between border-b-2 border-zinc-800 pb-3 group-hover:border-[#00ff41] transition-colors relative z-30">
-                                <div className="flex items-center gap-2">
-                                    <span className="bg-[#00ff41]/20 text-[#00ff41] px-2 py-1 flex items-center gap-2 border border-[#00ff41]/50 shadow-[0_0_8px_rgba(0,255,65,0)] group-hover:shadow-[0_0_8px_rgba(0,255,65,0.6)] transition-shadow">
-                                        🧠 SOCIAL SIGNAL
-                                    </span>
-                                    <span className="text-zinc-500 bg-black px-1.5 py-0.5 border border-zinc-800 text-[8px] group-hover:text-[#00ff41] group-hover:border-[#00ff41] transition-colors">
-                                        {signal.category}
-                                    </span>
+                {realSignals.length === 0 ? (
+                    <div className="flex justify-center items-center py-12 text-[#00ff41]">
+                        <RefreshCw size={24} className="animate-spin" />
+                    </div>
+                ) : (
+                    <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+                        {realSignals.filter(s => socialFilter === "ALL" || s.category === socialFilter).slice(0, 6).map(signal => (
+                            <div key={signal.id} className="bg-zinc-950 text-zinc-100 border-4 border-black p-5 relative flex flex-col shadow-[8px_8px_0_rgba(0,0,0,1)] group hover:-translate-y-1 hover:shadow-[12px_12px_0_rgba(0,255,65,0.7),-4px_-4px_0_rgba(255,0,0,0.5)] transition-all duration-200 cursor-default">
+                                {/* CRT SCANLINE EFFECT */}
+                                <div className="absolute inset-0 opacity-0 group-hover:opacity-10 pointer-events-none bg-[repeating-linear-gradient(0deg,transparent,transparent_2px,#00ff41_2px,#00ff41_4px)] transition-opacity z-20"></div>
+                                <div className="absolute inset-0 opacity-[0.03] pointer-events-none bg-[linear-gradient(to_right,#808080_1px,transparent_1px),linear-gradient(to_bottom,#808080_1px,transparent_1px)] bg-[size:20px_20px]"></div>
+                                
+                                <div className="text-[10px] font-black uppercase tracking-[0.2em] mb-4 flex items-center justify-between border-b-2 border-zinc-800 pb-3 group-hover:border-[#00ff41] transition-colors relative z-30">
+                                    <div className="flex items-center gap-2">
+                                        <span className="bg-[#00ff41]/20 text-[#00ff41] px-2 py-1 flex items-center gap-2 border border-[#00ff41]/50 shadow-[0_0_8px_rgba(0,255,65,0)] group-hover:shadow-[0_0_8px_rgba(0,255,65,0.6)] transition-shadow">
+                                            🧠 LIVE PUBLICATION
+                                        </span>
+                                        <span className="text-zinc-500 bg-black px-1.5 py-0.5 border border-zinc-800 text-[8px] group-hover:text-[#00ff41] group-hover:border-[#00ff41] transition-colors max-w-[80px] truncate">
+                                            {signal.category}
+                                        </span>
+                                    </div>
+                                    <Zap size={12} className="text-[#00ff41] group-hover:animate-pulse" />
                                 </div>
-                                <Zap size={12} className="text-[#00ff41] group-hover:animate-pulse" />
-                            </div>
-                            
-                            <div className="text-sm lg:text-base font-bold italic text-zinc-300 mb-6 flex-grow relative z-30 group-hover:text-white transition-colors">
-                                "{signal.text}"
-                            </div>
-                            
-                            <div className="bg-[#00ff41]/10 border-l-4 border-[#00ff41] p-3 mt-auto relative overflow-hidden group-hover:bg-[#00ff41]/20 transition-colors z-30">
-                                <div className="absolute -right-2 -top-2 text-[#00ff41] opacity-10 group-hover:opacity-20 group-hover:scale-110 transition-all">
-                                    <Activity size={40} />
+                                
+                                <div className="text-sm lg:text-base font-bold italic text-zinc-300 mb-6 flex-grow relative z-30 group-hover:text-white transition-colors">
+                                    "{signal.title}"
+                                    <div className="mt-2 text-[9px] font-black text-zinc-600 uppercase">
+                                        Source: {signal.source}
+                                    </div>
                                 </div>
-                                <div className="flex items-center gap-1.5 text-[#00ff41] text-[10px] font-black uppercase tracking-widest mb-2">
-                                    ⚡ INSIGHT
+                                
+                                <div className="bg-[#00ff41]/10 border-l-4 border-[#00ff41] p-3 mt-auto relative overflow-hidden group-hover:bg-[#00ff41]/20 transition-colors z-30">
+                                    <div className="absolute -right-2 -top-2 text-[#00ff41] opacity-10 group-hover:opacity-20 group-hover:scale-110 transition-all">
+                                        <Activity size={40} />
+                                    </div>
+                                    <div className="flex items-center gap-1.5 text-[#00ff41] text-[10px] font-black uppercase tracking-widest mb-2">
+                                        ⚡ INSIGHT
+                                    </div>
+                                    <div className="text-xs text-zinc-400 font-bold leading-relaxed relative z-10 group-hover:text-zinc-200 transition-colors">
+                                        {signal.insight}
+                                    </div>
                                 </div>
-                                <div className="text-xs text-zinc-400 font-bold leading-relaxed relative z-10 group-hover:text-zinc-200 transition-colors">
-                                    {signal.insight}
+                                
+                                {/* 1-CLICK SNIPE ACTION */}
+                                <div className="mt-4 pt-3 border-t border-zinc-800 flex justify-end relative z-30">
+                                    <button 
+                                        onClick={(e) => {
+                                            e.stopPropagation();
+                                            setPrefilledSwap({ fromSymbol: 'SOL', toSymbol: signal.token, amount: 0.1 });
+                                            setActiveViewId("COMMAND_CENTER");
+                                        }}
+                                        className="flex items-center gap-2 bg-black text-[#00ff41] px-3 py-1.5 border border-zinc-800 group-hover:border-[#00ff41] group-hover:bg-[#00ff41] group-hover:text-black font-black uppercase text-[10px] tracking-widest transition-all shadow-none group-hover:shadow-[4px_4px_0_rgba(0,0,0,1)]"
+                                    >
+                                        <Crosshair size={12} />
+                                        Snipe {signal.token}
+                                    </button>
                                 </div>
                             </div>
-                            
-                            {/* 1-CLICK SNIPE ACTION */}
-                            <div className="mt-4 pt-3 border-t border-zinc-800 flex justify-end relative z-30">
-                                <button 
-                                    onClick={(e) => {
-                                        e.stopPropagation();
-                                        setPrefilledSwap({ fromSymbol: 'SOL', toSymbol: signal.token, amount: 0.1 });
-                                        setActiveViewId("COMMAND_CENTER");
-                                    }}
-                                    className="flex items-center gap-2 bg-black text-[#00ff41] px-3 py-1.5 border border-zinc-800 group-hover:border-[#00ff41] group-hover:bg-[#00ff41] group-hover:text-black font-black uppercase text-[10px] tracking-widest transition-all shadow-none group-hover:shadow-[4px_4px_0_rgba(0,0,0,1)]"
-                                >
-                                    <Crosshair size={12} />
-                                    1-Click Snipe
-                                </button>
-                            </div>
-                        </div>
-                    ))}
-                </div>
+                        ))}
+                    </div>
+                )}
             </div>
 
             {/* Aesthetic Borders */}
