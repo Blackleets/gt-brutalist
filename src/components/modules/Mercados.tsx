@@ -229,6 +229,7 @@ export function Mercados() {
 
     const [currentIndex, setCurrentIndex] = useState(0);
     const [isRefreshing, setIsRefreshing] = useState(false);
+    const [socialFilter, setSocialFilter] = useState("ALL");
 
     const refreshData = useCallback(async () => {
         setIsRefreshing(true);
@@ -459,48 +460,88 @@ export function Mercados() {
                     <span className="bg-black text-[#00ff41] px-3 py-1 text-xs font-black uppercase tracking-[0.2em]">Live Intel Feed</span>
                 </div>
 
-                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6 mt-6">
+                <div className="flex gap-2 mt-2 mb-6 overflow-x-auto pb-2 scrollbar-hide">
+                    {["ALL", "WHALE", "L2 DEV", "MEMES"].map(cat => (
+                        <button 
+                            key={cat}
+                            onClick={() => setSocialFilter(cat)}
+                            className={`px-3 py-1 text-[10px] font-black uppercase tracking-widest border-2 transition-colors whitespace-nowrap ${socialFilter === cat ? 'bg-[#00ff41] text-black border-black shadow-[2px_2px_0_rgba(0,0,0,1)]' : 'bg-black text-white border-zinc-800 hover:border-[#00ff41]'}`}
+                        >
+                            [{cat}]
+                        </button>
+                    ))}
+                </div>
+
+                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
                     {[
                         {
                             id: 1,
+                            category: "WHALE",
+                            token: "WIF",
                             text: "Smart money wallets are aggressively accumulating $WIF on dips. Clear accumulation pattern.",
                             insight: "Smart money clustering indicates potential markup phase approaching."
                         },
                         {
                             id: 2,
-                            text: "Solana MEV bots are extracting less value this hour. Gas wars cooling down.",
+                            category: "L2 DEV",
+                            token: "OP",
+                            text: "Optimism MEV bots are extracting less value this hour. Gas wars cooling down.",
                             insight: "Favorable conditions for manual high-frequency sniping. Lower slippage risk."
                         },
                         {
                             id: 3,
-                            text: "Just tracked a 500 ETH move to a brand new protocol. No frontend yet.",
+                            category: "MEMES",
+                            token: "PEPE",
+                            text: "Just tracked a 500 ETH move to a brand new MEME protocol. No frontend yet.",
                             insight: "Likely a stealth launch preparation or private pool seeding. Monitoring."
                         }
-                    ].map(signal => (
-                        <div key={signal.id} className="bg-zinc-950 text-zinc-100 border-4 border-black p-5 relative flex flex-col shadow-[8px_8px_0_rgba(0,0,0,1)] group hover:-translate-y-1 transition-transform cursor-default">
+                    ].filter(s => socialFilter === "ALL" || s.category === socialFilter).map(signal => (
+                        <div key={signal.id} className="bg-zinc-950 text-zinc-100 border-4 border-black p-5 relative flex flex-col shadow-[8px_8px_0_rgba(0,0,0,1)] group hover:-translate-y-1 hover:shadow-[12px_12px_0_rgba(0,255,65,0.7),-4px_-4px_0_rgba(255,0,0,0.5)] transition-all duration-200 cursor-default">
+                            {/* CRT SCANLINE EFFECT */}
+                            <div className="absolute inset-0 opacity-0 group-hover:opacity-10 pointer-events-none bg-[repeating-linear-gradient(0deg,transparent,transparent_2px,#00ff41_2px,#00ff41_4px)] transition-opacity z-20"></div>
                             <div className="absolute inset-0 opacity-[0.03] pointer-events-none bg-[linear-gradient(to_right,#808080_1px,transparent_1px),linear-gradient(to_bottom,#808080_1px,transparent_1px)] bg-[size:20px_20px]"></div>
                             
-                            <div className="text-[10px] font-black uppercase tracking-[0.2em] mb-4 flex items-center justify-between border-b-2 border-zinc-800 pb-3">
-                                <span className="bg-[#00ff41]/20 text-[#00ff41] px-2 py-1 flex items-center gap-2 border border-[#00ff41]/50">
-                                    🧠 SOCIAL SIGNAL
-                                </span>
-                                <Zap size={12} className="text-[#00ff41]" />
+                            <div className="text-[10px] font-black uppercase tracking-[0.2em] mb-4 flex items-center justify-between border-b-2 border-zinc-800 pb-3 group-hover:border-[#00ff41] transition-colors relative z-30">
+                                <div className="flex items-center gap-2">
+                                    <span className="bg-[#00ff41]/20 text-[#00ff41] px-2 py-1 flex items-center gap-2 border border-[#00ff41]/50 shadow-[0_0_8px_rgba(0,255,65,0)] group-hover:shadow-[0_0_8px_rgba(0,255,65,0.6)] transition-shadow">
+                                        🧠 SOCIAL SIGNAL
+                                    </span>
+                                    <span className="text-zinc-500 bg-black px-1.5 py-0.5 border border-zinc-800 text-[8px] group-hover:text-[#00ff41] group-hover:border-[#00ff41] transition-colors">
+                                        {signal.category}
+                                    </span>
+                                </div>
+                                <Zap size={12} className="text-[#00ff41] group-hover:animate-pulse" />
                             </div>
                             
-                            <div className="text-sm lg:text-base font-bold italic text-zinc-300 mb-6 flex-grow">
+                            <div className="text-sm lg:text-base font-bold italic text-zinc-300 mb-6 flex-grow relative z-30 group-hover:text-white transition-colors">
                                 "{signal.text}"
                             </div>
                             
-                            <div className="bg-[#00ff41]/10 border-l-4 border-[#00ff41] p-3 mt-auto relative overflow-hidden">
-                                <div className="absolute -right-2 -top-2 text-[#00ff41] opacity-10">
+                            <div className="bg-[#00ff41]/10 border-l-4 border-[#00ff41] p-3 mt-auto relative overflow-hidden group-hover:bg-[#00ff41]/20 transition-colors z-30">
+                                <div className="absolute -right-2 -top-2 text-[#00ff41] opacity-10 group-hover:opacity-20 group-hover:scale-110 transition-all">
                                     <Activity size={40} />
                                 </div>
                                 <div className="flex items-center gap-1.5 text-[#00ff41] text-[10px] font-black uppercase tracking-widest mb-2">
                                     ⚡ INSIGHT
                                 </div>
-                                <div className="text-xs text-zinc-400 font-bold leading-relaxed relative z-10">
+                                <div className="text-xs text-zinc-400 font-bold leading-relaxed relative z-10 group-hover:text-zinc-200 transition-colors">
                                     {signal.insight}
                                 </div>
+                            </div>
+                            
+                            {/* 1-CLICK SNIPE ACTION */}
+                            <div className="mt-4 pt-3 border-t border-zinc-800 flex justify-end relative z-30">
+                                <button 
+                                    onClick={(e) => {
+                                        e.stopPropagation();
+                                        setPrefilledSwap({ fromSymbol: 'SOL', toSymbol: signal.token, amount: 0.1 });
+                                        setActiveViewId("COMMAND_CENTER");
+                                    }}
+                                    className="flex items-center gap-2 bg-black text-[#00ff41] px-3 py-1.5 border border-zinc-800 group-hover:border-[#00ff41] group-hover:bg-[#00ff41] group-hover:text-black font-black uppercase text-[10px] tracking-widest transition-all shadow-none group-hover:shadow-[4px_4px_0_rgba(0,0,0,1)]"
+                                >
+                                    <Crosshair size={12} />
+                                    1-Click Snipe
+                                </button>
                             </div>
                         </div>
                     ))}
