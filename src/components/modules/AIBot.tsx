@@ -293,7 +293,7 @@ export function AIBot() {
                     responseText = `[AI_SYS]\n\n` +
                                  `TOKEN: TOP_TRENDING_ASSETS\n` +
                                  `METRICS:\n` +
-                                 topGems.map(g => `• ${g.baseToken.symbol}: ${g.score} PTS | ${g.priceChange24h > 0 ? '+' : ''}${g.priceChange24h?.toFixed(2)}%`).join("\n") +
+                                 topGems.map(g => `• ${g.baseToken.symbol}: ${g.score} PTS | ${(g.priceChange24h ?? 0) > 0 ? '+' : ''}${(g.priceChange24h ?? 0).toFixed(2)}%`).join("\n") +
                                  `\n\nINSIGHT: MARKET MOMENTUM IS CONCENTRATING IN THE ABOVE ASSETS.`;
                 } else {
                     responseText = "[AI_SYS]\n\nNo real data available: Global rankings are currently synchronizing.";

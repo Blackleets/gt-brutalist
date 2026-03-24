@@ -4,18 +4,6 @@ import { translations } from "@/lib/translations";
 import { Clock, ShieldAlert } from "lucide-react";
 import { formatCurrency } from "@/lib/utils";
 
-interface WhaleTx {
-    id: string;
-    wallet: string;
-    action: string;
-    token: string;
-    sizeUsd: number;
-    timestamp: number;
-    addedAt: number; // For auto-expiration
-    chain: string;
-    isNew: boolean;
-    txUrl: string;
-}
 
 export function WhaleTracker() {
     const { networkMode, language } = useAppStore();

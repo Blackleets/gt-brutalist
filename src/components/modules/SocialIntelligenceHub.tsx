@@ -1,7 +1,8 @@
 import { useAppStore } from "@/lib/store";
 
 export function SocialIntelligenceHub() {
-    const { language } = useAppStore();
+    // Hook into store if needed later
+    useAppStore();
     return (
         <div className="flex flex-col items-center justify-center min-h-[600px] text-center p-10 bg-white border-4 border-black shadow-[12px_12px_0_black] mb-20 relative overflow-hidden">
             {/* Grid Pattern */}
