@@ -38,8 +38,6 @@ export function LiveFlow() {
             .slice(0, 6);
     }, [networkFeed, riskProfile, globalRankings]);
 
-    const [isGlitching, setIsGlitching] = useState(false);
-
     useEffect(() => {
         if (items.length > 0 && isLoading) {
             const timer = setTimeout(() => setIsLoading(false), 800);

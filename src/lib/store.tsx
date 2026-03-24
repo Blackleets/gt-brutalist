@@ -6,6 +6,19 @@ import { type Language } from "./translations";
 import { audio } from "./audio";
 
 // Global state interfaces for Vytronix system core
+//
+// ─────────────────────────────────────────────────────────────────
+// STORE ARCHITECTURE NOTES (for future slice split)
+//
+//  [SLICE: wallet]   — WalletState, WalletToken, WalletActivity
+//  [SLICE: market]   — AethrixPool, globalRankings, networkFeed, arbitrage
+//  [SLICE: ai]       — AIBot messages, proactive signal cooldowns
+//  [SLICE: risk]     — riskProfile (CONS | BAL | AGGR), AEGIS settings
+//  [SLICE: settings] — language, audioEnabled, networkMode, theme
+//
+//  When splitting: extract each slice into src/lib/slices/<name>Slice.ts
+//  and compose them in a root store via Context or Zustand.
+// ─────────────────────────────────────────────────────────────────
 
 export interface WalletToken {
     mint: string;

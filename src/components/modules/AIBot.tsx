@@ -78,7 +78,7 @@ export function AIBot() {
         return () => window.removeEventListener("resize", handleResize);
     }, []);
 
-    // Derived transforms for head tilt
+    // Derived transforms for head tilt (used by BrutalistRobot and cursor overlay)
     const rawTiltX = useTransform(mouseX, (v) => ((v / windowSize.w) - 0.5) * 40);
     const rawTiltY = useTransform(mouseY, (v) => -((v / windowSize.h) - 0.5) * 40);
     const tiltX = useSpring(rawTiltX, { damping: 25, stiffness: 120 });
@@ -86,9 +86,9 @@ export function AIBot() {
 
     const displayX = useTransform(mouseX, (v) => v.toFixed(0));
     const displayY = useTransform(mouseY, (v) => v.toFixed(0));
-    // Derived transforms for head tilt
-    const rawTiltX = useTransform(mouseX, (v) => ((v / windowSize.w) - 0.5) * 40);
-    const rawTiltY = useTransform(mouseY, (v) => -((v / windowSize.h) - 0.5) * 40);
+
+    // Glitch effect state — triggered by high market activity
+    const [isGlitching, setIsGlitching] = useState(false);
 
     const dragControls = useDragControls();
     const messagesEndRef = useRef<HTMLDivElement>(null);
@@ -462,15 +462,16 @@ export function AIBot() {
                                 </div>
                                 <div className="flex gap-4 items-center">
                                     <button
+                                        title={isAudioEnabled ? "Disable audio alerts" : "Enable audio alerts"}
                                         onClick={() => setIsAudioEnabled(!isAudioEnabled)}
                                         className={`transition-colors ${isAudioEnabled ? 'text-[#00ff41]' : 'text-zinc-500'}`}
                                     >
                                         <Activity size={16} className={isAudioEnabled ? 'animate-pulse' : ''} />
                                     </button>
-                                    <button onClick={handleClearChat} className="text-white hover:text-red-500 transition-colors">
+                                    <button title="Clear chat history" onClick={handleClearChat} className="text-white hover:text-red-500 transition-colors">
                                         <Trash2 size={16} />
                                     </button>
-                                    <button onClick={() => setIsChatOpen(false)} className="text-white hover:text-red-500 transition-colors">
+                                    <button title="Close AI terminal" onClick={() => setIsChatOpen(false)} className="text-white hover:text-red-500 transition-colors">
                                         <X size={20} />
                                     </button>
                                 </div>
@@ -530,7 +531,7 @@ export function AIBot() {
                                         placeholder={t.bot_placeholder}
                                         className="flex-grow bg-zinc-100 border-2 border-black p-2 outline-none font-bold uppercase text-sm"
                                     />
-                                    <button type="submit" disabled={!inputValue.trim()} className="bg-black text-[#00ff41] border-2 border-black p-2 hover:bg-[#00ff41] hover:text-black transition-colors shadow-[2px_2px_0_rgba(0,0,0,1)]">
+                                    <button type="submit" title="Send message" disabled={!inputValue.trim()} className="bg-black text-[#00ff41] border-2 border-black p-2 hover:bg-[#00ff41] hover:text-black transition-colors shadow-[2px_2px_0_rgba(0,0,0,1)]">
                                         <Send size={18} />
                                     </button>
                                 </form>
@@ -561,7 +562,7 @@ export function AIBot() {
                             exit={{ opacity: 0, scale: 0.9 }}
                             className="bg-white border-4 border-black p-3 shadow-[6px_6px_0_rgba(0,0,0,1)] relative max-w-[280px]"
                         >
-                            <button onClick={() => setIsTooltipVisible(false)} className="absolute -top-3 -right-3 w-6 h-6 bg-black text-white rounded-full flex items-center justify-center border-2 border-black">
+                            <button title="Dismiss suggestion" onClick={() => setIsTooltipVisible(false)} className="absolute -top-3 -right-3 w-6 h-6 bg-black text-white rounded-full flex items-center justify-center border-2 border-black">
                                 <X size={14} />
                             </button>
                             <p className="font-mono text-xs leading-tight text-black flex items-start gap-2">
@@ -578,6 +579,7 @@ export function AIBot() {
                             <div className="absolute -top-1 -right-1 w-3 h-3 bg-[#00ff41] rounded-full border-2 border-black animate-ping z-10" />
                             <div className="absolute -top-1 -right-1 w-3 h-3 bg-[#00ff41] rounded-full border-2 border-black z-10" />
                             <button
+                                title={isChatOpen ? "Close AI terminal" : "Open AI terminal"}
                                 onPointerDown={(e) => dragControls.start(e)}
                                 onClick={() => {
                                     setIsChatOpen(!isChatOpen);
