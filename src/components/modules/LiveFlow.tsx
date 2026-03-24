@@ -3,19 +3,42 @@ import { motion, AnimatePresence } from "framer-motion";
 import { useAppStore } from "@/lib/store";
 
 export function LiveFlow() {
-    const { networkFeed } = useAppStore();
+    const { networkFeed, riskProfile, globalRankings } = useAppStore();
     const [isLoading, setIsLoading] = useState(true);
 
-    // Map network feed to flow items reactively
+    // Map network feed to flow items reactively + apply risk filters
     const items = useMemo(() => {
         if (!networkFeed) return [];
-        return networkFeed.map((s, index) => ({
-            id: s.id || `${s.tokenSymbol}-${index}-${s.time}`,
-            token: s.tokenSymbol,
-            change: s.metricValue,
-            signal: s.type.toLowerCase()
-        })).slice(0, 6);
-    }, [networkFeed]);
+
+        // Exact thresholds from requirements
+        const scoreThreshold = riskProfile === "CONS" ? 75 : riskProfile === "BAL" ? 50 : 30;
+        const liqThreshold = riskProfile === "CONS" ? 300000 : riskProfile === "BAL" ? 100000 : 50000;
+        const volThreshold = riskProfile === "CONS" ? 15 : 100;
+
+        return networkFeed
+            .filter(s => {
+                // Find matching token in globalRankings to check against risk parameters
+                const pool = globalRankings.find(p => p.baseToken.symbol === s.tokenSymbol);
+                if (pool) {
+                    if (pool.score < scoreThreshold) return false;
+                    if (pool.liquidityUsd < liqThreshold) return false;
+                    if (Math.abs(pool.priceChange24h || 0) > volThreshold) return false;
+                } else if (riskProfile === "CONS") {
+                    // In conservative mode, if we don't have ranking data yet, we hide for safety
+                    return false;
+                }
+                return true;
+            })
+            .map((s, index) => ({
+                id: s.id || `${s.tokenSymbol}-${index}-${s.time}`,
+                token: s.tokenSymbol,
+                change: s.metricValue,
+                signal: s.type.toLowerCase()
+            }))
+            .slice(0, 6);
+    }, [networkFeed, riskProfile, globalRankings]);
+
+    const [isGlitching, setIsGlitching] = useState(false);
 
     useEffect(() => {
         if (items.length > 0 && isLoading) {

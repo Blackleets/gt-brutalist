@@ -292,6 +292,8 @@ export interface AppState {
     setHunters: (hunters: Hunter[] | ((prev: Hunter[]) => Hunter[])) => void;
     hunterSignals: HunterSignal[];
     addHunterSignal: (signal: HunterSignal) => void;
+    riskProfile: "CONS" | "BAL" | "AGGR";
+    setRiskProfile: (profile: "CONS" | "BAL" | "AGGR") => void;
 }
 
 const AppContext = createContext<AppState | undefined>(undefined);
@@ -814,6 +816,17 @@ export function AppProvider({ children }: { children: ReactNode }) {
             return next;
         });
     }, []);
+
+    const [riskProfile, setRiskProfileState] = useState<"CONS" | "BAL" | "AGGR">(() => {
+        const saved = localStorage.getItem("vytronix_risk_profile");
+        return (saved as "CONS" | "BAL" | "AGGR") || "BAL";
+    });
+
+    const setRiskProfile = useCallback((profile: "CONS" | "BAL" | "AGGR") => {
+        setRiskProfileState(profile);
+        localStorage.setItem("vytronix_risk_profile", profile);
+        addSystemLog(`AEGIS_RISK_PROFILE_TRANSITION: ${profile}`, "info");
+    }, [addSystemLog]);
 
     const setTelegramConfig = useCallback((token: string, chatId: string, topicId: string) => {
         setTelegramToken(token);
@@ -1375,7 +1388,8 @@ export function AppProvider({ children }: { children: ReactNode }) {
         executionParams, setExecutionParams,
         marketSentiment, setMarketSentiment,
         hunters, setHunters: setHuntersStable,
-        hunterSignals, addHunterSignal
+        hunterSignals, addHunterSignal,
+        riskProfile, setRiskProfile
     }), [
         selectedChain, activeRpcPerChain, activeEnvPerChain, apiKey, wallet, aethrixStats, latency, rpcHealth,
         alertsEnabled, activeAlerts, watchlist, positionSnapshots, smartWallets, bscScanKey, smartMoneyActivity,
@@ -1398,7 +1412,8 @@ export function AppProvider({ children }: { children: ReactNode }) {
         chatMessages, addChatMessage,
         executionParams, setExecutionParams,
         marketSentiment, setMarketSentiment,
-        addHunterSignal, setHuntersStable
+        addHunterSignal, setHuntersStable,
+        riskProfile, setRiskProfile
     ]);
 
     return (

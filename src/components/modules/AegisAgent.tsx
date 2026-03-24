@@ -12,7 +12,7 @@ import { formatCurrency } from "@/lib/utils";
 type AgentState = "IDLE" | "SCANNING" | "ANALYZING" | "READY" | "EXECUTED";
 
 export function AegisAgent() {
-    const { globalRankings, wallet, selectedChain, positionSnapshots, executeSwap, addSystemLog, language, audioEnabled, executionParams, networkMode } = useAppStore();
+    const { globalRankings, wallet, selectedChain, positionSnapshots, executeSwap, addSystemLog, language, audioEnabled, executionParams, networkMode, riskProfile, setRiskProfile } = useAppStore();
     const { canAccessAlpha } = useAlphaGuard();
     const t = translations[language];
 
@@ -24,14 +24,26 @@ export function AegisAgent() {
     const [agentState, setAgentState] = useState<AgentState>("IDLE");
     const [logs, setLogs] = useState<string[]>([]);
     const [currentTarget, setCurrentTarget] = useState<AethrixPool | null>(null);
-    const [riskProfile, setRiskProfile] = useState<"CONSERVATIVE" | "BALANCED" | "AGGRESSIVE">("BALANCED");
+
+    // Map long names to CONS/BAL/AGGR for the store
+    const mapProfile = (p: string): "CONS" | "BAL" | "AGGR" => {
+        if (p === "CONSERVATIVE") return "CONS";
+        if (p === "AGGRESSIVE") return "AGGR";
+        return "BAL";
+    };
+
+    const reverseMapProfile = (p: "CONS" | "BAL" | "AGGR"): "CONSERVATIVE" | "BALANCED" | "AGGRESSIVE" => {
+        if (p === "CONS") return "CONSERVATIVE";
+        if (p === "AGGR") return "AGGRESSIVE";
+        return "BALANCED";
+    };
 
     // Sync state with Network Mode
     useEffect(() => {
         if (networkMode) {
             setAgentState("SCANNING");
             // Note: addLog uses state, so we must be careful with initial logs
-            setLogs(prev => [...prev.slice(-4), `[${new Date().toISOString().split('T')[1].slice(0, 8)}] AUTO_MODE_INIT: Scanning Tactical Sectors...`]);
+            setLogs((prev: string[]) => [...prev.slice(-4), `[${new Date().toISOString().split('T')[1].slice(0, 8)}] AUTO_MODE_INIT: Scanning Tactical Sectors...`]);
         } else {
             setAgentState("IDLE");
             setCurrentTarget(null);
@@ -47,7 +59,7 @@ export function AegisAgent() {
     })));
 
     const addLog = (msg: string) => {
-        setLogs(prev => [...prev.slice(-4), `[${new Date().toISOString().split('T')[1].slice(0, 8)}] ${msg}`]);
+        setLogs((prev: string[]) => [...prev.slice(-4), `[${new Date().toISOString().split('T')[1].slice(0, 8)}] ${msg}`]);
         addSystemLog(`AEGIS: ${msg}`, msg.includes("ERR") ? "error" : "info");
         audio.blip();
     };
@@ -90,11 +102,11 @@ export function AegisAgent() {
             addLog(t.aegis_log_analyzing_liq.replace("{val}", topTarget.liquidityUsd.toLocaleString()));
 
             setTimeout(() => {
-                const threshold = riskProfile === "CONSERVATIVE" ? 70 : riskProfile === "BALANCED" ? 50 : 30;
+                const threshold = riskProfile === "CONS" ? 75 : riskProfile === "BAL" ? 50 : 30;
 
                 if (topTarget.score >= threshold) {
                     addLog(t.aegis_log_strat_val.replace("{score}", topTarget.score.toString()));
-                    addLog(t.aegis_log_risk_ready.replace("{risk}", t[`aegis_risk_${riskProfile.toLowerCase() as "conservative" | "balanced" | "aggressive"}`]));
+                    addLog(t.aegis_log_risk_ready.replace("{risk}", t[`aegis_risk_${reverseMapProfile(riskProfile).toLowerCase() as "conservative" | "balanced" | "aggressive"}`]));
                     audio.success();
                     setAgentState("READY");
                 } else {
@@ -316,10 +328,10 @@ export function AegisAgent() {
                                     <button
                                         key={profile}
                                         onClick={() => {
-                                            setRiskProfile(profile as "CONSERVATIVE" | "BALANCED" | "AGGRESSIVE");
+                                            setRiskProfile(mapProfile(profile));
                                             audio.click();
                                         }}
-                                        className={`flex-1 py-2 text-[10px] font-black border-2 border-black transition-all ${riskProfile === profile
+                                        className={`flex-1 py-2 text-[10px] font-black border-2 border-black transition-all ${reverseMapProfile(riskProfile) === profile
                                             ? "bg-black text-[#00ff41] -translate-y-1 shadow-[4px_4px_0_rgba(0,0,0,0.5)]"
                                             : "bg-white/50 text-black hover:bg-white"
                                             }`}

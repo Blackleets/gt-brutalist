@@ -48,7 +48,8 @@ export function AIBot() {
         setAudioEnabled: setIsAudioEnabled, 
         marketSentiment,
         globalRankings,
-        arbitrageOpportunities
+        arbitrageOpportunities,
+        riskProfile
     } = useAppStore();
     const t = translations[language];
 
@@ -77,7 +78,7 @@ export function AIBot() {
         return () => window.removeEventListener("resize", handleResize);
     }, []);
 
-    // Derived transforms for head tilt - Optimized with declarative MotionValues
+    // Derived transforms for head tilt
     const rawTiltX = useTransform(mouseX, (v) => ((v / windowSize.w) - 0.5) * 40);
     const rawTiltY = useTransform(mouseY, (v) => -((v / windowSize.h) - 0.5) * 40);
     const tiltX = useSpring(rawTiltX, { damping: 25, stiffness: 120 });
@@ -85,8 +86,9 @@ export function AIBot() {
 
     const displayX = useTransform(mouseX, (v) => v.toFixed(0));
     const displayY = useTransform(mouseY, (v) => v.toFixed(0));
-
-    const [isGlitching, setIsGlitching] = useState(false);
+    // Derived transforms for head tilt
+    const rawTiltX = useTransform(mouseX, (v) => ((v / windowSize.w) - 0.5) * 40);
+    const rawTiltY = useTransform(mouseY, (v) => -((v / windowSize.h) - 0.5) * 40);
 
     const dragControls = useDragControls();
     const messagesEndRef = useRef<HTMLDivElement>(null);
@@ -98,9 +100,6 @@ export function AIBot() {
         const saved = localStorage.getItem(storageKey);
         return saved ? JSON.parse(saved) : DEFAULT_HISTORY(language);
     });
-
-    // Key-based remount is handled by the parent or by adding key to the container
-    // Removed the effect that caused cascading renders on storageKey change.
 
     useEffect(() => {
         localStorage.setItem(storageKey, JSON.stringify(chatHistory));
@@ -114,7 +113,6 @@ export function AIBot() {
     const agentAddress = "0x8004...Vytr0nix";
     const [isThinking, setIsThinking] = useState(false);
 
-    // Vytronix AI Context & Multi-language suggestions
     const aiSuggestions = useMemo(() => [
         t.bot_suggest_audit,
         t.bot_suggest_visualize,
@@ -122,12 +120,10 @@ export function AIBot() {
         t.bot_terminal_mode
     ].filter(Boolean) as string[], [t]);
 
-    // Handle language change for the initial greeting - Optimized to avoid cascading renders
     const lastLanguage = useRef(language);
     useEffect(() => {
         if (lastLanguage.current !== language) {
             lastLanguage.current = language;
-            // Use timeout to avoid synchronous setState inside effect warning
             setTimeout(() => {
                 setChatHistory(prev => {
                     if (prev.length === 0) return DEFAULT_HISTORY(language);
@@ -146,24 +142,20 @@ export function AIBot() {
         }
     }, [language, t.bot_greeting]);
 
-    // Appear every 20 seconds
     useEffect(() => {
         const tooltipInterval = setInterval(() => {
             if (!isChatOpen) {
                 setMessageIndex(prev => (prev + 1) % aiSuggestions.length);
                 setIsTooltipVisible(true);
-
-                // Hide tooltip after 5 seconds
                 setTimeout(() => {
                     setIsTooltipVisible(false);
                 }, 5000);
             }
-        }, 20000); // Every 20 seconds
+        }, 20000);
 
         return () => clearInterval(tooltipInterval);
     }, [isChatOpen, aiSuggestions.length]);
 
-    // Audio Feedback helper
     const playAudio = useCallback((type: "msg" | "alert") => {
         if (!isAudioEnabled) return;
         try {
@@ -183,50 +175,74 @@ export function AIBot() {
         } catch (e) { console.warn("Audio Context Failed", e); }
     }, [isAudioEnabled]);
 
-
-    // Proactive AI Agent Loop: Generates insights based on real-time data
-    const lastInsightsRef = useRef<Record<string, number>>({}); // Cooldown per token/type
+    const lastInsightsRef = useRef<Record<string, number>>({}); 
 
     useEffect(() => {
         if (!networkMode) return;
 
         const aiLoop = setInterval(() => {
             const now = Date.now();
-            const cooldown = 180000; // 3 minutes per specific token insight
+            const cooldown = 180000;
             let proActiveMsg = "";
-            // Centralized Opportunity Judgment Engine
+
             const candidates = globalRankings.map(p => {
                 const arb = arbitrageOpportunities.find(a => a.token === p.baseToken.symbol);
-                
-                // Scoring System (Normalized weights)
-                const liqScore = Math.min(p.liquidityUsd / 200000, 1) * 30; // 30 points max
-                const volScore = Math.min(p.volume24hUsd / 100000, 1) * 20; // 20 points max
-                const momScore = Math.min((p.priceChange24h ?? p.priceChange5m) / 10, 1) * 20; // 20 points max
-                const arbScore = arb ? 30 : 0; // 30 points if arbitrage exists
-                
+                const liqScore = Math.min(p.liquidityUsd / 200000, 1) * 30;
+                const volScore = Math.min(p.volume24hUsd / 100000, 1) * 20;
+                const momScore = Math.min((p.priceChange24h ?? p.priceChange5m) / 10, 1) * 20;
+                const arbScore = arb ? 30 : 0;
                 const totalScore = liqScore + volScore + momScore + arbScore;
                 return { pool: p, score: totalScore, arb };
             }).sort((a,b) => b.score - a.score);
 
-            // Decision Matrix: Only act on high convictions or strong formations
+            const minLiq = riskProfile === "CONS" ? 300000 : riskProfile === "BAL" ? 100000 : 50000;
+            const minScore = riskProfile === "CONS" ? 75 : riskProfile === "BAL" ? 50 : 30;
+            const volThreshold = riskProfile === "CONS" ? 15 : 100;
+
             if (candidates.length > 0) {
                 const best = candidates[0];
                 const key = `decision_${best.pool.baseToken.address}`;
                 
                 if (!lastInsightsRef.current[key] || now - lastInsightsRef.current[key] > cooldown) {
-                    if (best.score > 75) {
-                        proActiveMsg = `[AI_SYS]\nHigh-quality opportunity on ${best.pool.baseToken.symbol}\n\nENTRY: Favorable\nConditions aligned for potential entry. Score: ${Math.round(best.score)}/100.`;
-                    } else if (best.score > 50) {
-                        proActiveMsg = `[AI_SYS]\nWatchlist candidate on ${best.pool.baseToken.symbol}\n\nENTRY: Wait\nMomentum present but confirmation needed. Score: ${Math.round(best.score)}/100.`;
-                    } else if (best.score > 30 && best.pool.priceChange24h && best.pool.priceChange24h > 20) {
-                        proActiveMsg = `[AI_SYS]\nLow-quality signal on ${best.pool.baseToken.symbol}\n\nACTION: Avoid\nWeak structure or inconsistent data. Score: ${Math.round(best.score)}/100.`;
+                    const meetsLiq = best.pool.liquidityUsd >= minLiq;
+                    const isNotTooVolatile = Math.abs(best.pool.priceChange24h || 0) <= volThreshold;
+
+                    if (best.score >= minScore && meetsLiq && isNotTooVolatile) {
+                        const tonePrefix = riskProfile === "CONS" ? "[AI_CONSERVATIVE]" : riskProfile === "AGGR" ? "[AI_AGGRESSIVE]" : "[AI_SYS]";
+                        const riskPhrase = riskProfile === "CONS" ? "High-confidence opportunity" : riskProfile === "BAL" ? "Strong setup detected" : "Early opportunity detected";
+                        
+                        if (best.score > 75) {
+                            proActiveMsg = `${tonePrefix}\n${riskPhrase} on ${best.pool.baseToken.symbol}\n\nENTRY: Favorable\nConditions aligned for potential entry. Score: ${Math.round(best.score)}/100.`;
+                        } else if (best.score > 50) {
+                            proActiveMsg = `${tonePrefix}\n${riskPhrase} on ${best.pool.baseToken.symbol}\n\nENTRY: Wait\nMomentum present but confirmation needed. Score: ${Math.round(best.score)}/100.`;
+                        } else if (best.score > 30) {
+                            proActiveMsg = `${tonePrefix}\n${riskPhrase} on ${best.pool.baseToken.symbol}\n\nACTION: Avoid\nWeak structure or inconsistent data. Score: ${Math.round(best.score)}/100.`;
+                        }
                     }
                     
-                    if (proActiveMsg) lastInsightsRef.current[key] = now;
+                    if (proActiveMsg) {
+                        lastInsightsRef.current[key] = now;
+                    }
                 }
             }
 
-            // Fallback for Volume Spikes not in rankings
+            // Failsafe
+            const anyPassedFullListing = candidates.some(c => {
+                const cLiq = riskProfile === "CONS" ? 300000 : riskProfile === "BAL" ? 100000 : 50000;
+                const cScore = riskProfile === "CONS" ? 75 : riskProfile === "BAL" ? 50 : 30;
+                const cVol = riskProfile === "CONS" ? 15 : 100;
+                return c.score >= cScore && c.pool.liquidityUsd >= cLiq && Math.abs(c.pool.priceChange24h || 0) <= cVol;
+            });
+
+            if (!anyPassedFullListing && !proActiveMsg && candidates.length > 0) {
+                const failsafeKey = `failsafe_${riskProfile}`;
+                if (!lastInsightsRef.current[failsafeKey] || now - lastInsightsRef.current[failsafeKey] > 300000) {
+                    proActiveMsg = `[AI_SYS]\nNo valid opportunities under current risk profile (${riskProfile}).\nFilters: Score > ${minScore}, Liq > ${minLiq}.`;
+                    lastInsightsRef.current[failsafeKey] = now;
+                }
+            }
+
+            // Fallback for Volume Spikes
             if (!proActiveMsg && networkFeed.length > 0) {
                 const spike = networkFeed.slice(0, 5).find(f => f.type === "OPPORTUNITY_DETECTED" && parseFloat(f.metricValue.replace(/[^0-9.]/g, '')) > 100000);
                 if (spike) {
@@ -240,25 +256,21 @@ export function AIBot() {
 
             if (proActiveMsg) {
                 setChatHistory(prev => {
-                    // Prevent duplicate consecutive proactive messages
                     if (prev.length > 0 && prev[prev.length - 1].text === proActiveMsg) return prev;
                     return [...prev, { sender: "bot", text: proActiveMsg, type: "text" }];
                 });
                 playAudio("alert");
-                
-                // If tooltip is hidden, we might want to trigger it briefly to show the agent spoke
                 if (!isChatOpen) {
                     setIsTooltipVisible(true);
                     setTimeout(() => setIsTooltipVisible(false), 8000);
                 }
             }
 
-        }, 12000); // Analyze every 12 seconds
+        }, 12000);
 
         return () => clearInterval(aiLoop);
-    }, [networkMode, globalRankings, networkFeed, arbitrageOpportunities, isChatOpen, playAudio]);
+    }, [networkMode, globalRankings, networkFeed, arbitrageOpportunities, isChatOpen, playAudio, riskProfile]);
 
-    // DERIVED GLOBAL MOOD: Fast pulse if hyperactive, slow if calm
     const [hyperActive, setHyperActive] = useState(false);
     useEffect(() => {
         const checkHyper = () => {
@@ -270,7 +282,6 @@ export function AIBot() {
         return () => clearInterval(interval);
     }, [networkFeed]);
 
-    // REAL_TIME_MOUSE_TRACKER: Tactical Crosshair - Optimized with MotionValues to avoid re-renders
     useEffect(() => {
         const handleMouseMove = (e: MouseEvent) => {
             mouseX.set(e.clientX);
@@ -282,7 +293,6 @@ export function AIBot() {
         return () => window.removeEventListener("mousemove", handleMouseMove);
     }, [isBotVisible, mouseX, mouseY]);
 
-    // NEURAL_GLITCH: Triggers on hyperactivity or large whales
     useEffect(() => {
         if (hyperActive || networkFeed.some(f => f.type === "OPPORTUNITY_DETECTED" && parseFloat(f.metricValue.replace(/[^0-9.]/g, '')) > 500000)) {
             const triggerGlitch = () => {
@@ -294,13 +304,11 @@ export function AIBot() {
         }
     }, [hyperActive, networkFeed]);
 
-    // Auto-scroll chat
     useEffect(() => {
         if (messagesEndRef.current) {
             messagesEndRef.current.scrollIntoView({ behavior: "smooth" });
         }
     }, [chatHistory, isChatOpen]);
-
 
     const handleSendMessage = (e?: React.FormEvent | React.KeyboardEvent, forcedCommand?: string) => {
         if (e && 'preventDefault' in e) e.preventDefault();
@@ -312,7 +320,6 @@ export function AIBot() {
         setIsThinking(true);
         if (playAudio) playAudio("msg");
 
-        // Real-time Command Processing
         setTimeout(() => {
             const lowerMsg = userMsg.toLowerCase();
             const ethRegex = /0x[a-fA-F0-9]{40}/;
@@ -320,7 +327,6 @@ export function AIBot() {
             
             let responseText = "";
 
-            // 1. AUDIT_CA LOGIC (Real Data)
             if (lowerMsg.startsWith("audit ") || ethRegex.test(userMsg) || solRegex.test(userMsg)) {
                 const addr = (userMsg.match(ethRegex)?.[0] || userMsg.match(solRegex)?.[0] || lowerMsg.replace("audit ", "").trim()) || "";
                 const pool = globalRankings.find(p => 
@@ -341,9 +347,7 @@ export function AIBot() {
                     responseText = "[AI_SYS]\n\nNo real data available for this contract address. Ensure the scanner is active and the token has liquidity.";
                 }
             }
-            // 2. WHALE_SCAN LOGIC (Real Data)
             else if (lowerMsg === "whales" || lowerMsg === "whale_scan") {
-                // Filter real whale transactions from the network feed (threshold > $10k or has K/M in value)
                 const whaleEvents = networkFeed.filter(f => 
                     f.type === "OPPORTUNITY_DETECTED" && 
                     (f.metricValue.includes("K") || f.metricValue.includes("M") || parseFloat(f.metricValue.replace(/[^0-9.]/g, '')) > 10000)
@@ -359,10 +363,8 @@ export function AIBot() {
                     responseText = "[AI_SYS]\n\nNo real data available: No whale activity detected in the current telemetry window.";
                 }
             }
-            // 3. HEATMAP LOGIC (Real Data)
             else if (lowerMsg === "meta" || lowerMsg === "heatmap") {
                 const topGems = [...globalRankings].sort((a, b) => (b.score || 0) - (a.score || 0)).slice(0, 5);
-                
                 if (topGems.length > 0) {
                     responseText = `[AI_SYS]\n\n` +
                                  `TOKEN: TOP_TRENDING_ASSETS\n` +
@@ -373,10 +375,8 @@ export function AIBot() {
                     responseText = "[AI_SYS]\n\nNo real data available: Global rankings are currently synchronizing.";
                 }
             }
-            // 4. ARBITRAGE LOGIC (Real Data)
             else if (lowerMsg === "arbitrage") {
                 const realArbs = arbitrageOpportunities;
-                
                 if (realArbs.length > 0) {
                     responseText = `[AI_SYS]\n\n` +
                                  `TOKEN: ${realArbs[0].token}\n` +
@@ -387,12 +387,10 @@ export function AIBot() {
                     responseText = "[AI_SYS]\n\nNo real data available: No executable arbitrage opportunities currently bypass the safety filters.";
                 }
             }
-            // 5. Terminal Toggle Logic
             else if (lowerMsg === "terminal" || lowerMsg === "modo_terminal") {
                 setIsTerminalMode(prev => !prev);
                 responseText = `[SYSTEM_MODE_CHANGE] TERMINAL_VIEW: ${!isTerminalMode ? "ACTIVE" : "OFF"}`;
             }
-            // 6. Visualization Logic
             else if (lowerMsg.includes("visualize") || lowerMsg.includes("visualizar")) {
                 setChatHistory((prev: ChatMessage[]) => [...prev, { 
                     sender: "bot", 
@@ -404,7 +402,6 @@ export function AIBot() {
                 if (playAudio) playAudio("alert");
                 return;
             }
-            // Fallback to Knowledge Base
             else {
                 const knowledgeAnswer = findAnswer(userMsg, language as "en" | "es" | "zh");
                 responseText = knowledgeAnswer || t.bot_command_reply;
@@ -421,9 +418,6 @@ export function AIBot() {
         }, 400); 
     };
 
-
-
-
     return (
         <>
             <motion.div
@@ -436,7 +430,6 @@ export function AIBot() {
                 className="fixed bottom-6 right-6 z-[9999] flex flex-col items-end gap-2 text-left select-none"
             >
 
-                {/* --- Chat Window --- */}
                 <AnimatePresence>
                     {isChatOpen && (
                         <motion.div
@@ -446,7 +439,6 @@ export function AIBot() {
                             transition={{ duration: 0.2 }}
                             className="w-[calc(100vw-48px)] sm:w-[440px] bg-white border-4 border-black shadow-[12px_12px_0_rgba(0,0,0,1)] flex flex-col mb-4 overflow-hidden"
                         >
-                            {/* Header */}
                             <div className={`bg-black text-[#00ff41] p-3 flex justify-between items-center border-b-4 border-black ${isGlitching ? 'translate-x-[2px] skew-x-1' : ''}`}>
                                 <div className="flex flex-col">
                                     <div className={`flex items-center gap-2 ${hyperActive ? 'animate-pulse text-red-500' : ''}`}>
@@ -471,83 +463,56 @@ export function AIBot() {
                                 <div className="flex gap-4 items-center">
                                     <button
                                         onClick={() => setIsAudioEnabled(!isAudioEnabled)}
-                                        title="Toggle Audio Feedback"
-                                        aria-label="Toggle Audio Feedback"
                                         className={`transition-colors ${isAudioEnabled ? 'text-[#00ff41]' : 'text-zinc-500'}`}
                                     >
                                         <Activity size={16} className={isAudioEnabled ? 'animate-pulse' : ''} />
                                     </button>
-                                    <button
-                                        onClick={handleClearChat}
-                                        aria-label={t.bot_clear_chat}
-                                        className="text-white hover:text-red-500 transition-colors"
-                                    >
+                                    <button onClick={handleClearChat} className="text-white hover:text-red-500 transition-colors">
                                         <Trash2 size={16} />
                                     </button>
-                                    <button
-                                        onClick={() => setIsChatOpen(false)}
-                                        aria-label={t.bot_close_chat}
-                                        className="text-white hover:text-red-500 transition-colors"
-                                    >
+                                    <button onClick={() => setIsChatOpen(false)} className="text-white hover:text-red-500 transition-colors">
                                         <X size={20} />
                                     </button>
                                 </div>
                             </div>
 
-                            {/* Neural Telemetry Header */}
                             <div className="bg-black/95 border-b-2 border-black p-1.5 flex justify-around text-[7px] font-black uppercase tracking-widest text-white">
                                 <div className="flex items-center gap-1">
                                     <span className="text-zinc-500">{t.bot_threat_label}:</span>
-                                    <span className={hyperActive ? "text-red-500 animate-pulse" : "text-[#00ff41]"}>
-                                        {hyperActive ? t.bot_threat_volatile : t.bot_threat_minimal}
-                                    </span>
+                                    <span className={hyperActive ? "text-red-500 animate-pulse" : "text-[#00ff41]"}>{hyperActive ? t.bot_threat_volatile : t.bot_threat_minimal}</span>
                                 </div>
-                                <div className="flex items-center gap-1">
-                                    <span className="text-zinc-500">{t.bot_gas_label}:</span>
-                                    <span className="text-[#00ff41]">3.1 GWEI</span>
-                                </div>
-                                <div className="flex items-center gap-1">
-                                    <span className="text-zinc-500">{t.bot_ping_label}:</span>
-                                    <span className="text-[#00ff41]">12MS</span>
-                                </div>
-                                <div className="flex items-center gap-1">
-                                    <span className="text-zinc-500">{t.bot_load_label}:</span>
-                                    <span className="text-[#00ff41]">14%</span>
-                                </div>
+                                <div className="flex items-center gap-1"><span className="text-zinc-500">{t.bot_gas_label}:</span><span className="text-[#00ff41]">3.1 GWEI</span></div>
+                                <div className="flex items-center gap-1"><span className="text-zinc-500">{t.bot_ping_label}:</span><span className="text-[#00ff41]">12MS</span></div>
+                                <div className="flex items-center gap-1"><span className="text-zinc-500">{t.bot_load_label}:</span><span className="text-[#00ff41]">14%</span></div>
                             </div>
 
-                            {/* Messages Area */}
                             <div className={`h-[380px] overflow-y-auto p-4 flex flex-col gap-4 font-mono transition-all duration-500
-                                ${isTerminalMode
-                                    ? 'bg-black bg-[linear-gradient(rgba(0,0,0,0.5)_50%,rgba(0,0,0,0)_50%),linear-gradient(90deg,rgba(0,255,0,0.1),rgba(255,0,0,0.1),rgba(0,0,255,0.1))] bg-[length:100%_2px,3px_100%] text-[#00ff41]'
-                                    : 'bg-zinc-50 bg-[url("https://www.transparenttextures.com/patterns/carbon-fibre.png")] text-black'}
+                                ${isTerminalMode ? 'bg-black text-[#00ff41]' : 'bg-zinc-50 text-black'}
                             `}>
                                 {chatHistory.map((msg: ChatMessage, i: number) => (
                                     <div key={i} className={`flex w-full ${msg.sender === 'user' ? 'justify-end' : 'justify-start'}`}>
-                                        <div className={`p-3 border-2 border-black max-w-[85%] transition-all
+                                        <div className={`p-3 border-2 border-black max-w-[85%]
                                             ${msg.sender === 'user'
                                                 ? (isTerminalMode ? 'bg-[#00ff41] text-black font-black' : 'bg-black text-white font-bold ml-4')
                                                 : (isTerminalMode ? 'bg-black border-[#00ff41] text-[#00ff41] shadow-[4px_4px_0_#00ff41]' : 'bg-white text-black font-mono text-sm mr-4 shadow-[3px_3px_0_rgba(0,0,0,1)]')
                                             }`}>
                                             {msg.sender === 'bot' && (
-                                                <div className={`text-[10px] bg-black inline-block px-1 mb-1 font-black uppercase ${isTerminalMode ? 'text-[#00ff41]' : 'text-[#00ff41]'}`}>
-                                                    AI_SYS
-                                                </div>
+                                                <div className="text-[10px] bg-black inline-block px-1 mb-1 font-black uppercase text-[#00ff41]">AI_SYS</div>
                                             )}
                                             {msg.type === "image" ? (
                                                 <div className="space-y-2">
-                                                    <img src={msg.imagePath} alt="Market Visualization" className="w-full border-2 border-black" />
+                                                    <img src={msg.imagePath} alt="Market" className="w-full border-2 border-black" />
                                                     <p className="text-[10px] italic">{msg.text}</p>
                                                 </div>
                                             ) : (
-                                                <p className={isTerminalMode ? "leading-tight" : ""}>{msg.text}</p>
+                                                <p>{msg.text}</p>
                                             )}
                                         </div>
                                     </div>
                                 ))}
                                 {isThinking && (
                                     <div className="flex justify-start">
-                                        <div className="bg-black text-[#00ff41] p-2 border-2 border-black flex items-center gap-2 shadow-[3px_3px_0_rgba(0,0,0,1)]">
+                                        <div className="bg-black text-[#00ff41] p-2 border-2 border-black flex items-center gap-2">
                                             <div className="w-2 h-2 bg-[#00ff41] animate-bounce" />
                                             <span className="text-[10px] uppercase font-black">{t.bot_thinking}</span>
                                         </div>
@@ -556,43 +521,29 @@ export function AIBot() {
                                 <div ref={messagesEndRef} />
                             </div>
 
-                            {/* Input Area */}
                             <div className="border-t-4 border-black bg-white p-2">
                                 <form onSubmit={handleSendMessage} className="flex gap-2">
                                     <input
                                         type="text"
                                         value={inputValue}
                                         onChange={(e) => setInputValue(e.target.value)}
-                                        onKeyDown={(e) => e.key === "Enter" && handleSendMessage()}
                                         placeholder={t.bot_placeholder}
-                                        className="flex-grow bg-zinc-100 border-2 border-black p-2 outline-none font-bold placeholder:text-zinc-400 focus:bg-white transition-colors uppercase text-sm"
+                                        className="flex-grow bg-zinc-100 border-2 border-black p-2 outline-none font-bold uppercase text-sm"
                                     />
-                                    <button
-                                        type="submit"
-                                        aria-label={t.bot_send_message}
-                                        disabled={!inputValue.trim()}
-                                        className="bg-black text-[#00ff41] border-2 border-black p-2 hover:bg-[#00ff41] hover:text-black transition-colors disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center shadow-[2px_2px_0_rgba(0,0,0,1)] active:translate-x-0.5 active:translate-y-0.5 active:shadow-none"
-                                    >
+                                    <button type="submit" disabled={!inputValue.trim()} className="bg-black text-[#00ff41] border-2 border-black p-2 hover:bg-[#00ff41] hover:text-black transition-colors shadow-[2px_2px_0_rgba(0,0,0,1)]">
                                         <Send size={18} />
                                     </button>
                                 </form>
-
-                                {/* Quick Action Chips */}
                                 <div className="flex gap-1.5 mt-2 flex-wrap">
                                     {QUICK_COMMANDS.map((q) => (
                                         <button
                                             key={q.label}
                                             onClick={() => {
-                                                if (q.cmd.endsWith(" ")) {
-                                                    setInputValue(q.cmd);
-                                                } else {
-                                                    setInputValue(q.cmd);
-                                                    handleSendMessage();
-                                                }
+                                                setInputValue(q.cmd);
+                                                if (!q.cmd.endsWith(" ")) handleSendMessage();
                                             }}
-                                            className="text-[8px] font-black uppercase bg-white border-2 border-black px-1.5 py-0.5 hover:bg-black hover:text-white transition-all shadow-[2px_2px_0_rgba(0,0,0,1)] active:shadow-none translate-y-0 active:translate-y-0.5 translate-x-0 active:translate-x-0.5 flex items-center gap-1.5 group"
+                                            className="text-[8px] font-black uppercase bg-white border-2 border-black px-1.5 py-0.5 hover:bg-black hover:text-white transition-all shadow-[2px_2px_0_rgba(0,0,0,1)]"
                                         >
-                                            <div className="w-1 h-1 bg-[#00ff41] rounded-full animate-pulse group-hover:bg-green-400" />
                                             [{q.label}]
                                         </button>
                                     ))}
@@ -602,88 +553,59 @@ export function AIBot() {
                     )}
                 </AnimatePresence >
 
-                {/* --- Tooltip Suggestion --- */}
                 <AnimatePresence>
-                    {
-                        isTooltipVisible && !isChatOpen && isBotVisible && (
-                            <motion.div
-                                initial={{ opacity: 0, x: 20 }}
-                                animate={{ opacity: 1, x: 0 }}
-                                exit={{ opacity: 0, scale: 0.9 }}
-                                className="bg-white border-4 border-black p-3 shadow-[6px_6px_0_rgba(0,0,0,1)] relative max-w-[280px]"
-                            >
-                                <button
-                                    onClick={() => setIsTooltipVisible(false)}
-                                    aria-label={t.bot_close_suggestion}
-                                    className="absolute -top-3 -right-3 w-6 h-6 bg-black text-white rounded-full flex items-center justify-center hover:bg-neutral-800 transition-colors border-2 border-black active:translate-x-0.5 active:translate-y-0.5 shadow-[2px_2px_0_rgba(0,0,0,1)] active:shadow-none"
-                                >
-                                    <X size={14} />
-                                </button>
-                                <p className="font-mono text-xs leading-tight text-black flex items-start gap-2">
-                                    <ArrowRight size={12} className="shrink-0 mt-0.5 text-[#00ff41]" />
-                                    <span className="font-bold">{aiSuggestions[messageIndex]}</span>
-                                </p>
-                            </motion.div>
-                        )
-                    }
-                </AnimatePresence >
-
-                {/* --- Bot Avatar --- */}
-                <AnimatePresence>
-                    {
-                        isBotVisible && (
-                            <motion.div
-                                initial={{ scale: 0 }}
-                                animate={{ scale: 1 }}
-                                className="relative"
-                            >
-                                {/* Status Blip */}
-                                <div className="absolute -top-1 -right-1 w-3 h-3 bg-[#00ff41] rounded-full border-2 border-black animate-ping z-10" />
-                                <div className="absolute -top-1 -right-1 w-3 h-3 bg-[#00ff41] rounded-full border-2 border-black z-10" />
-
-                                <button
-                                    onPointerDown={(e) => dragControls.start(e)}
-                                    onClick={() => {
-                                        setIsChatOpen(!isChatOpen);
-                                        setIsTooltipVisible(false);
-                                    }}
-                                    aria-label="Toggle AI Bot"
-                                    className={`
-                                relative w-16 h-16 border-4 border-black flex items-center justify-center shadow-[6px_6px_0_rgba(0,0,0,1)] 
-                                transition-all cursor-grab active:cursor-grabbing group overflow-hidden
-                                ${isChatOpen ? 'bg-[#00ff41] text-black translate-y-1 translate-x-1 shadow-[2px_2px_0_rgba(0,0,0,1)]' : 'bg-black text-white hover:bg-zinc-800'}
-                            `}
-                                >
-                                    {/* Visual Sniper Halo effect when network is on */}
-                                    {networkMode && (
-                                        <div className={`absolute inset-0 border-2 border-[#00ff41] animate-ping opacity-30 pointer-events-none ${hyperActive ? '[animation-duration:0.6s]' : '[animation-duration:2.5s]'}`} />
-                                    )}
-
-                                    {isChatOpen ? <MessageSquareText size={32} /> : <BrutalistRobot isActive={networkMode} tiltX={tiltX} tiltY={tiltY} />}
-                                </button>
-                            </motion.div>
-                        )
-                    }
-                </AnimatePresence >
-
-            </motion.div >
-            {/* Tactical Crosshair - Moved OUTSIDE the draggable container to restore absolute tracking */}
-            {
-                networkMode && !isChatOpen && isBotVisible && (
-                    <motion.div
-                        className="fixed pointer-events-none z-[100] mix-blend-difference"
-                        style={{ x: mouseX, y: mouseY, left: 0, top: 0 }}
-                    >
-                        <div className="absolute w-[80px] h-[1px] bg-[#00ff41] -translate-x-[40px] opacity-40 shrink-0" />
-                        <div className="absolute w-[1px] h-[80px] bg-[#00ff41] -translate-y-[40px] opacity-40 shrink-0" />
-                        <div className="absolute w-6 h-6 border-2 border-[#00ff41] -translate-x-3 -translate-y-3 rounded-full opacity-60 animate-pulse shrink-0" />
-                        <motion.div className="absolute top-4 left-4 font-mono text-[8px] text-[#00ff41] font-black uppercase tracking-tighter shadow-black drop-shadow-md">
-                            TAR: <motion.span>{displayX}</motion.span>,<motion.span>{displayY}</motion.span><br />
-                            NET: STABLE
+                    {isTooltipVisible && !isChatOpen && isBotVisible && (
+                        <motion.div
+                            initial={{ opacity: 0, x: 20 }}
+                            animate={{ opacity: 1, x: 0 }}
+                            exit={{ opacity: 0, scale: 0.9 }}
+                            className="bg-white border-4 border-black p-3 shadow-[6px_6px_0_rgba(0,0,0,1)] relative max-w-[280px]"
+                        >
+                            <button onClick={() => setIsTooltipVisible(false)} className="absolute -top-3 -right-3 w-6 h-6 bg-black text-white rounded-full flex items-center justify-center border-2 border-black">
+                                <X size={14} />
+                            </button>
+                            <p className="font-mono text-xs leading-tight text-black flex items-start gap-2">
+                                <ArrowRight size={12} className="shrink-0 mt-0.5 text-[#00ff41]" />
+                                <span className="font-bold">{aiSuggestions[messageIndex]}</span>
+                            </p>
                         </motion.div>
+                    )}
+                </AnimatePresence >
+
+                <AnimatePresence>
+                    {isBotVisible && (
+                        <motion.div initial={{ scale: 0 }} animate={{ scale: 1 }} className="relative">
+                            <div className="absolute -top-1 -right-1 w-3 h-3 bg-[#00ff41] rounded-full border-2 border-black animate-ping z-10" />
+                            <div className="absolute -top-1 -right-1 w-3 h-3 bg-[#00ff41] rounded-full border-2 border-black z-10" />
+                            <button
+                                onPointerDown={(e) => dragControls.start(e)}
+                                onClick={() => {
+                                    setIsChatOpen(!isChatOpen);
+                                    setIsTooltipVisible(false);
+                                }}
+                                className={`relative w-16 h-16 border-4 border-black flex items-center justify-center shadow-[6px_6px_0_rgba(0,0,0,1)] transition-all 
+                                    ${isChatOpen ? 'bg-[#00ff41] text-black translate-y-1 translate-x-1 shadow-[2px_2px_0_rgba(0,0,0,1)]' : 'bg-black text-white hover:bg-zinc-800'}
+                                `}
+                            >
+                                {isChatOpen ? <MessageSquareText size={32} /> : <BrutalistRobot isActive={networkMode} tiltX={tiltX} tiltY={tiltY} />}
+                            </button>
+                        </motion.div>
+                    )}
+                </AnimatePresence >
+            </motion.div >
+
+            {networkMode && !isChatOpen && isBotVisible && (
+                <motion.div className="fixed pointer-events-none z-[100] mix-blend-difference" style={{ x: mouseX, y: mouseY, left: 0, top: 0 }}>
+                    <div className="absolute w-[80px] h-[1px] bg-[#00ff41] -translate-x-[40px] opacity-40" />
+                    <div className="absolute w-[1px] h-[80px] bg-[#00ff41] -translate-y-[40px] opacity-40" />
+                    <div className="absolute w-6 h-6 border-2 border-[#00ff41] -translate-x-3 -translate-y-3 rounded-full opacity-60 animate-pulse" />
+                    <motion.div className="absolute top-4 left-4 font-mono text-[8px] text-[#00ff41] font-black uppercase tracking-tighter shadow-black drop-shadow-md">
+                        TAR: <motion.span>{displayX}</motion.span>,<motion.span>{displayY}</motion.span><br />
+                        NET: STABLE
                     </motion.div>
-                )
-            }
+                </motion.div>
+            )}
         </>
     );
 }
+
