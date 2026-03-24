@@ -78,7 +78,7 @@ export interface SmartWallet {
 export interface PulseSignal {
     id: string;
     chain: string;
-    type: "BUY DOMINANCE" | "SELL DOMINANCE" | "MOMENTUM" | "ORDER_EXECUTION";
+    type: "ORDER_EXECUTION" | "BUY DOMINANCE" | "SELL DOMINANCE" | "MOMENTUM" | "OPPORTUNITY_DETECTED";
     metricValue: string;
     tokenSymbol: string;
     time: number;
@@ -985,11 +985,7 @@ export function AppProvider({ children }: { children: ReactNode }) {
             const stored = localStorage.getItem("vytronix_smart_wallets");
             if (stored) return JSON.parse(stored);
         } catch { void 0; }
-        return [
-            { label: "SOL WHALE #1", address: "Hw91m8peXjXRE6n4n6n4n6n4n6n4n6n4", chain: "solana", tier: "whale" },
-            { label: "PRO SCOUT #1", address: "7Z6s6n4n6n4n6n4n6n4n6n4n6n4n6n4", chain: "solana", tier: "scout" },
-            { label: "BSC WHALE #1", address: "0x1234567890123456789012345678901234567890", chain: "bsc", tier: "whale" }
-        ];
+        return [];
     });
 
     const [bscScanKey, setBscScanKeyState] = useState<string>(() =>
@@ -1003,10 +999,7 @@ export function AppProvider({ children }: { children: ReactNode }) {
             const stored = localStorage.getItem("vytronix_hunters");
             if (stored) return JSON.parse(stored);
         } catch { void 0; }
-        return [
-            { address: "0x2638f29A21", alias: "SHARK_01", score: 98, trades: 142, avgProfit: 12.5, consistency: 94, speed: "0.4s", tier: "High Frequency Hunter", lastActive: Date.now() },
-            { address: "0x7F217b11B9", alias: "ARB_KING", score: 85, trades: 84, avgProfit: 8.2, consistency: 78, speed: "1.2s", tier: "Elite Hunter", lastActive: Date.now() - 3600000 }
-        ];
+        return [];
     });
 
     const [hunterSignals, setHunterSignals] = useState<HunterSignal[]>([]);

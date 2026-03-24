@@ -191,7 +191,7 @@ export function AIBot() {
 
     // NEURAL_GLITCH: Triggers on hyperactivity or large whales
     useEffect(() => {
-        if (hyperActive || networkFeed.some(f => f.type === "ORDER_EXECUTION" && parseFloat(f.metricValue.replace('$', '').replace('K', '000')) > 500000)) {
+        if (hyperActive || networkFeed.some(f => f.type === "OPPORTUNITY_DETECTED" && parseFloat(f.metricValue.replace(/[^0-9.]/g, '')) > 500000)) {
             const triggerGlitch = () => {
                 setIsGlitching(true);
                 setTimeout(() => setIsGlitching(false), 150);
@@ -271,7 +271,7 @@ export function AIBot() {
             else if (lowerMsg === "whales" || lowerMsg === "whale_scan") {
                 // Filter real whale transactions from the network feed (threshold > $10k or has K/M in value)
                 const whaleEvents = networkFeed.filter(f => 
-                    f.type === "ORDER_EXECUTION" && 
+                    f.type === "OPPORTUNITY_DETECTED" && 
                     (f.metricValue.includes("K") || f.metricValue.includes("M") || parseFloat(f.metricValue.replace(/[^0-9.]/g, '')) > 10000)
                 );
                 

@@ -136,7 +136,7 @@ export function GlobalEngine() {
                                 addFeedEvent({
                                     id: `arb-${arb.token}-${now}`,
                                     chain: arb.buyChain.toUpperCase(),
-                                    type: "ORDER_EXECUTION",
+                                    type: "OPPORTUNITY_DETECTED",
                                     metricValue: `ARB_DETECTED: ${arb.profit}% SPREAD`,
                                     tokenSymbol: arb.token,
                                     time: now,
@@ -186,7 +186,7 @@ export function GlobalEngine() {
                             addFeedEvent({
                                 id: `hunter-${sig.hash}`,
                                 chain: sig.buyDex.includes('Sol') ? 'SOLANA' : 'BSC',
-                                type: "ORDER_EXECUTION",
+                                type: "OPPORTUNITY_DETECTED",
                                 metricValue: `HUNTER_EXE: +$${sig.profitUsd.toLocaleString()}`,
                                 tokenSymbol: sig.token,
                                 time: Date.now(),
@@ -318,7 +318,7 @@ export function GlobalEngine() {
                     addFeedEvent({
                         id: `kol-${signal.id}`,
                         chain: "GLOBAL",
-                        type: "ORDER_EXECUTION",
+                        type: "OPPORTUNITY_DETECTED",
                         metricValue: `SOCIAL_PULSE: @${signal.kols[0]}`,
                         tokenSymbol: signal.tokenSymbol,
                         time: Date.now(),
