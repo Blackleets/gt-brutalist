@@ -1,4 +1,4 @@
-import { useState, useEffect, useRef, useMemo } from "react";
+import { useState, useEffect, useRef, useMemo, useCallback } from "react";
 import { motion, AnimatePresence, useDragControls, useMotionValue, useSpring, useTransform, MotionValue } from "framer-motion";
 import { X, Terminal, ArrowRight, Send, MessageSquareText, Trash2, Activity } from "lucide-react";
 import { useAppStore } from "@/lib/store";
@@ -163,7 +163,100 @@ export function AIBot() {
         return () => clearInterval(tooltipInterval);
     }, [isChatOpen, aiSuggestions.length]);
 
-    // Proactive alerts removed as part of signal simplification effort.
+    // Audio Feedback helper
+    const playAudio = useCallback((type: "msg" | "alert") => {
+        if (!isAudioEnabled) return;
+        try {
+            const freq = type === "alert" ? 440 : 880;
+            const AudioContextClass = (window.AudioContext || (window as unknown as { webkitAudioContext: typeof AudioContext }).webkitAudioContext);
+            const audioCtx = new AudioContextClass();
+            const osc = audioCtx.createOscillator();
+            const gain = audioCtx.createGain();
+            osc.type = "square";
+            osc.frequency.setValueAtTime(freq, audioCtx.currentTime);
+            gain.gain.setValueAtTime(0.02, audioCtx.currentTime);
+            gain.gain.exponentialRampToValueAtTime(0.0001, audioCtx.currentTime + 0.1);
+            osc.connect(gain);
+            gain.connect(audioCtx.destination);
+            osc.start();
+            osc.stop(audioCtx.currentTime + 0.1);
+        } catch (e) { console.warn("Audio Context Failed", e); }
+    }, [isAudioEnabled]);
+
+
+    // Proactive AI Agent Loop: Generates insights based on real-time data
+    const lastInsightsRef = useRef<Record<string, number>>({}); // Cooldown per token/type
+
+    useEffect(() => {
+        if (!networkMode) return;
+
+        const aiLoop = setInterval(() => {
+            const now = Date.now();
+            const cooldown = 180000; // 3 minutes per specific token insight
+            let proActiveMsg = "";
+            // Centralized Opportunity Judgment Engine
+            const candidates = globalRankings.map(p => {
+                const arb = arbitrageOpportunities.find(a => a.token === p.baseToken.symbol);
+                
+                // Scoring System (Normalized weights)
+                const liqScore = Math.min(p.liquidityUsd / 200000, 1) * 30; // 30 points max
+                const volScore = Math.min(p.volume24hUsd / 100000, 1) * 20; // 20 points max
+                const momScore = Math.min((p.priceChange24h ?? p.priceChange5m) / 10, 1) * 20; // 20 points max
+                const arbScore = arb ? 30 : 0; // 30 points if arbitrage exists
+                
+                const totalScore = liqScore + volScore + momScore + arbScore;
+                return { pool: p, score: totalScore, arb };
+            }).sort((a,b) => b.score - a.score);
+
+            // Decision Matrix: Only act on high convictions or strong formations
+            if (candidates.length > 0) {
+                const best = candidates[0];
+                const key = `decision_${best.pool.baseToken.address}`;
+                
+                if (!lastInsightsRef.current[key] || now - lastInsightsRef.current[key] > cooldown) {
+                    if (best.score > 75) {
+                        proActiveMsg = `[AI_SYS]\nHigh-quality opportunity on ${best.pool.baseToken.symbol}\n\nENTRY: Favorable\nConditions aligned for potential entry. Score: ${Math.round(best.score)}/100.`;
+                    } else if (best.score > 50) {
+                        proActiveMsg = `[AI_SYS]\nWatchlist candidate on ${best.pool.baseToken.symbol}\n\nENTRY: Wait\nMomentum present but confirmation needed. Score: ${Math.round(best.score)}/100.`;
+                    } else if (best.score > 30 && best.pool.priceChange24h && best.pool.priceChange24h > 20) {
+                        proActiveMsg = `[AI_SYS]\nLow-quality signal on ${best.pool.baseToken.symbol}\n\nACTION: Avoid\nWeak structure or inconsistent data. Score: ${Math.round(best.score)}/100.`;
+                    }
+                    
+                    if (proActiveMsg) lastInsightsRef.current[key] = now;
+                }
+            }
+
+            // Fallback for Volume Spikes not in rankings
+            if (!proActiveMsg && networkFeed.length > 0) {
+                const spike = networkFeed.slice(0, 5).find(f => f.type === "OPPORTUNITY_DETECTED" && parseFloat(f.metricValue.replace(/[^0-9.]/g, '')) > 100000);
+                if (spike) {
+                    const key = `spike_${spike.tokenSymbol}`;
+                    if (!lastInsightsRef.current[key] || now - lastInsightsRef.current[key] > cooldown) {
+                        proActiveMsg = `[AI_SYS]\nUnusual volume expansion on ${spike.tokenSymbol}. Whale accumulation confirmed. Watchlist entry triggered.`;
+                        lastInsightsRef.current[key] = now;
+                    }
+                }
+            }
+
+            if (proActiveMsg) {
+                setChatHistory(prev => {
+                    // Prevent duplicate consecutive proactive messages
+                    if (prev.length > 0 && prev[prev.length - 1].text === proActiveMsg) return prev;
+                    return [...prev, { sender: "bot", text: proActiveMsg, type: "text" }];
+                });
+                playAudio("alert");
+                
+                // If tooltip is hidden, we might want to trigger it briefly to show the agent spoke
+                if (!isChatOpen) {
+                    setIsTooltipVisible(true);
+                    setTimeout(() => setIsTooltipVisible(false), 8000);
+                }
+            }
+
+        }, 12000); // Analyze every 12 seconds
+
+        return () => clearInterval(aiLoop);
+    }, [networkMode, globalRankings, networkFeed, arbitrageOpportunities, isChatOpen, playAudio]);
 
     // DERIVED GLOBAL MOOD: Fast pulse if hyperactive, slow if calm
     const [hyperActive, setHyperActive] = useState(false);
@@ -208,25 +301,6 @@ export function AIBot() {
         }
     }, [chatHistory, isChatOpen]);
 
-    // Audio Feedback helper
-    const playAudio = (type: "msg" | "alert") => {
-        if (!isAudioEnabled) return;
-        try {
-            const freq = type === "alert" ? 440 : 880;
-            const AudioContextClass = (window.AudioContext || (window as unknown as { webkitAudioContext: typeof AudioContext }).webkitAudioContext);
-            const audioCtx = new AudioContextClass();
-            const osc = audioCtx.createOscillator();
-            const gain = audioCtx.createGain();
-            osc.type = "square";
-            osc.frequency.setValueAtTime(freq, audioCtx.currentTime);
-            gain.gain.setValueAtTime(0.02, audioCtx.currentTime);
-            gain.gain.exponentialRampToValueAtTime(0.0001, audioCtx.currentTime + 0.1);
-            osc.connect(gain);
-            gain.connect(audioCtx.destination);
-            osc.start();
-            osc.stop(audioCtx.currentTime + 0.1);
-        } catch (e) { console.warn("Audio Context Failed", e); }
-    };
 
     const handleSendMessage = (e?: React.FormEvent | React.KeyboardEvent, forcedCommand?: string) => {
         if (e && 'preventDefault' in e) e.preventDefault();

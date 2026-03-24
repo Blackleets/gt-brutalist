@@ -2,7 +2,7 @@
 // Alpha Engine (Solana & BSC) Real-Market Data Processor
 
 // DexScreener API pair shape (partial, only fields we use)
-interface DexScreenerPair {
+export interface DexScreenerPair {
     pairAddress?: string;
     chainId?: string;
     dexId?: string;
@@ -444,3 +444,74 @@ export async function fetchSpotlightTokens(): Promise<AethrixPool[]> {
     }
 }
 
+
+/**
+ * FETCH TRENDING PAIRS
+ * Actively scans for top volume pairs across supported chains.
+ */
+export async function fetchTrendingPairs(): Promise<AethrixPool[]> {
+    try {
+        // We use the DexScreener 'Latest Pairs' or 'Volume' discovery indirectly 
+        // by targetting major dexes if they have high volume.
+        // For actual "trending" we can use the search API with volume parameters or common tokens.
+        
+        // Strategy: Fetch from common high-activity tokens on both chains to find active pairs
+        const [solRes, bscRes] = await Promise.all([
+            fetch('https://api.dexscreener.com/latest/dex/search?q=sol %20liquidity:100000'),
+            fetch('https://api.dexscreener.com/latest/dex/search?q=bsc %20liquidity:100000')
+        ]);
+        
+        const solData = await solRes.json();
+        const bscData = await bscRes.json();
+        
+        const allPairs = [...(solData.pairs || []), ...(bscData.pairs || [])];
+        
+        const processed = allPairs
+            .filter((p: DexScreenerPair) => {
+                const liq = p.liquidity?.usd || 0;
+                const vol = p.volume?.h24 || 0;
+                return p.pairAddress && p.baseToken?.address && p.priceUsd && liq >= 100000 && vol >= 50000;
+            })
+            .map((p: DexScreenerPair) => {
+                const liq = p.liquidity?.usd || 0;
+                const vol = p.volume?.h24 || 0;
+                const momentum = p.priceChange?.m5 || 0;
+                
+                const score = calculateScore(liq, vol, momentum, p.txns?.m5?.buys || 0, p.txns?.m5?.sells || 0);
+                
+                const pool = {
+                    id: p.pairAddress!,
+                    chain: p.chainId === 'solana' ? 'solana' : 'bsc',
+                    dex: p.dexId?.toUpperCase() || 'UNKNOWN',
+                    baseToken: {
+                        symbol: p.baseToken!.symbol!,
+                        address: p.baseToken!.address!,
+                        logoUrl: p.info?.imageUrl
+                    },
+                    quoteToken: { symbol: p.quoteToken?.symbol || "USDC", address: p.quoteToken?.address || "" },
+                    pairAddress: p.pairAddress!,
+                    createdAt: p.pairCreatedAt || Date.now(),
+                    liquidityUsd: liq,
+                    volume24hUsd: vol,
+                    priceChange5m: momentum,
+                    priceChange24h: p.priceChange?.h24 || 0,
+                    txns5m: {
+                        buys: p.txns?.m5?.buys || 0,
+                        sells: p.txns?.m5?.sells || 0
+                    },
+                    score: score,
+                    priceUsd: parseFloat(p.priceUsd!) || 0
+                } as AethrixPool;
+                
+                const { riskScore, zone } = calculateThreatMatrix(pool);
+                const alphaReason = determineAlphaReason(pool);
+                return { ...pool, riskScore, zone, alphaReason };
+            });
+
+        return processed.sort((a, b) => b.volume24hUsd - a.volume24hUsd);
+
+    } catch (e) {
+        console.error("Trending fetch failed", e);
+        return [];
+    }
+}

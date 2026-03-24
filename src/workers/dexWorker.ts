@@ -1,4 +1,4 @@
-import { scanAethrixPools, fetchSpotlightTokens } from '../lib/aethrix';
+import { scanAethrixPools, fetchSpotlightTokens, fetchTrendingPairs, AethrixPool } from '../lib/aethrix';
 import { calculateArbitrageOpportunities, calculateUnifiedScore } from '../lib/engineCore';
 
 let executionParams = { slippage: '0.5', bribePriority: 'MID' };
@@ -17,17 +17,37 @@ self.onmessage = async (e) => {
     if (action === 'start') {
         const execute = async () => {
             try {
-                const [solResponse, bscResponse, spotlightPools] = await Promise.all([
+                // Fetch from multiple real sources to ensure high density of real data
+                const [solResponse, bscResponse, spotlightPools, trendingPools] = await Promise.all([
                     scanAethrixPools("solana"),
                     scanAethrixPools("bsc"),
-                    fetchSpotlightTokens()
+                    fetchSpotlightTokens(),
+                    fetchTrendingPairs()
                 ]);
 
-                const allPools = [
+                // Combine and Deduplicate by pair address to prevent UI flickering
+                const rawPools = [
                     ...(solResponse.pools || []),
                     ...(bscResponse.pools || []),
-                    ...spotlightPools
+                    ...spotlightPools,
+                    ...trendingPools
                 ];
+
+                const uniquePoolsMap = new Map<string, AethrixPool>();
+                rawPools.forEach(pool => {
+                    if (!uniquePoolsMap.has(pool.id)) {
+                        // Strict Filtering: Real data quality check
+                        const hasReliableLiquidity = pool.liquidityUsd >= 100000;
+                        const hasActiveVolume = pool.volume24hUsd >= 50000;
+                        const hasValidPrice = pool.priceUsd > 0;
+
+                        if (hasReliableLiquidity && hasActiveVolume && hasValidPrice) {
+                            uniquePoolsMap.set(pool.id, pool);
+                        }
+                    }
+                });
+
+                const allPools = Array.from(uniquePoolsMap.values());
 
                 // Perform Background Fusion & Alpha Scoring
                 allPools.forEach(pool => {
@@ -37,12 +57,17 @@ self.onmessage = async (e) => {
                     pool.alphaReasons = insights;
                 });
 
+                // Sort by score or volume and limit to top 50
+                const finalPools = allPools
+                    .sort((a, b) => (b.score || 0) - (a.score || 0))
+                    .slice(0, 50);
+
                 // Perform Background Arbitrage Detection
-                const arbResult = calculateArbitrageOpportunities(allPools, executionParams);
+                const arbResult = calculateArbitrageOpportunities(finalPools, executionParams);
 
                 self.postMessage({
                     type: 'DATA_FUSED',
-                    pools: allPools,
+                    pools: finalPools,
                     arbOpportunities: arbResult.opportunities,
                     arbRejected: arbResult.rejected,
                     arbWatchlist: arbResult.watchlist,
@@ -59,6 +84,7 @@ self.onmessage = async (e) => {
         };
 
         execute();
+        // Run every 10 seconds to maintain fresh data without overloading API
         setInterval(execute, 10000);
     }
 };
