@@ -23,7 +23,7 @@ export function SignalBridge() {
                     : `https://bscscan.com/tx/${signal.txHash}`;
 
                 const message = 
-                    `💰 VYTRONIX SMART ARBITRAGE EXECUTED\n` +
+                    `⚡ EXECUTABLE ARBITRAGE\n` +
                     `━━━━━━━━━━━━━━━━\n\n` +
                     `💎 Pair: ${signal.pair}\n` +
                     `🔄 Route: ${signal.route.join(' → ')}\n` +

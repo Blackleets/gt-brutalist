@@ -1,8 +1,7 @@
 import { useState, useEffect } from "react";
-import { motion, AnimatePresence } from "framer-motion";
 import { useAppStore } from "@/lib/store";
 import { translations } from "@/lib/translations";
-import { Anchor, TrendingUp, TrendingDown, Clock, ShieldAlert } from "lucide-react";
+import { Clock, ShieldAlert } from "lucide-react";
 import { formatCurrency } from "@/lib/utils";
 
 interface WhaleTx {
@@ -21,143 +20,11 @@ interface WhaleTx {
 export function WhaleTracker() {
     const { networkMode, language } = useAppStore();
     const tr = translations[language];
-    const [transactions, setTransactions] = useState<WhaleTx[]>(() => [
-        { id: 'seed-1', wallet: tr.whale_buyer, action: tr.whale_accumulation, token: 'SOL', sizeUsd: 124000, timestamp: Date.now() - 5000, addedAt: Date.now(), chain: 'SOL', isNew: false, txUrl: '#' },
-        { id: 'seed-2', wallet: tr.whale_seller, action: tr.whale_liquidation, token: 'BTC', sizeUsd: 850000, timestamp: Date.now() - 12000, addedAt: Date.now(), chain: 'BTC', isNew: false, txUrl: '#' },
-        { id: 'seed-3', wallet: tr.whale_buyer, action: tr.whale_accumulation, token: 'ETH', sizeUsd: 45000, timestamp: Date.now() - 25000, addedAt: Date.now(), chain: 'ETH', isNew: false, txUrl: '#' },
-    ]);
-    const [isLoading, setIsLoading] = useState(true);
-    const [totalVolume, setTotalVolume] = useState<number>(0);
+    const [totalVolume] = useState<number>(0);
 
-    // Fetch real whale transfers from block explorers & public APIs
     useEffect(() => {
-        let isCancelled = false;
-
-        const fetchWhaleData = async () => {
-            if (!networkMode) return;
-
-            try {
-                // Fetch high-precision trade data from the biggest liquidity sources (100% Real Time)
-                // Fetch data from multi-node public endpoints for maximum reliability
-                const fetchSafe = async (url: string) => {
-                    try {
-                        const r = await fetch(url);
-                        if (!r.ok) return [];
-                        return await r.json();
-                    } catch {
-                        console.warn("Binance Node Timeout, switching to backup...");
-                        return [];
-                    }
-                };
-
-                const symbols = [
-                    "BTC", "ETH", "SOL", "BNB", "XRP", "DOT", "MATIC", "LINK", "PEPE", "WIF"
-                ];
-
-                // Update incrementally to avoid blocking on slowest node
-                symbols.forEach(async (s) => {
-                    const data = await fetchSafe(`https://api.binance.com/api/v3/aggTrades?symbol=${s}USDT&limit=15`);
-                    if (isCancelled || !Array.isArray(data)) return;
-
-                    const symbol = s;
-                    const chain = symbol === "SOL" || symbol === "WIF" ? "SOL" :
-                        symbol === "BNB" || symbol === "PEPE" ? "BSC" : "BTC";
-
-                    const newTxs: WhaleTx[] = [];
-                    data.forEach((t: { p: string; q: string; T: number; f: number; m: boolean }) => {
-                        const price = parseFloat(t.p);
-                        const qty = parseFloat(t.q);
-                        const size = price * qty;
-
-                        if (size >= 15000) { // Slightly lower threshold for more activity feel
-                            newTxs.push({
-                                id: `binance-${symbol}-${t.f}`,
-                                wallet: t.m ? tr.whale_seller : tr.whale_buyer,
-                                action: t.m ? tr.whale_liquidation : tr.whale_accumulation,
-                                token: symbol,
-                                sizeUsd: size,
-                                timestamp: t.T,
-                                addedAt: Date.now(),
-                                chain: chain,
-                                isNew: true,
-                                txUrl: `https://www.binance.com/en/trade/${symbol}_USDT`
-                            });
-                        }
-                    });
-
-                    if (newTxs.length > 0) {
-                        setTransactions(prev => {
-                            const existingIds = new Set(prev.map(t => t.id));
-                            const uniqueNew = newTxs.filter(t => !existingIds.has(t.id));
-                            if (uniqueNew.length === 0) return prev;
-
-                            const combined = [...uniqueNew, ...prev].sort((a, b) => b.timestamp - a.timestamp).slice(0, 15);
-
-                            // Visual highlight expiration
-                            setTimeout(() => {
-                                setTransactions(current =>
-                                    current.map(t => uniqueNew.some(n => n.id === t.id) ? { ...t, isNew: false } : t)
-                                );
-                            }, 2000);
-
-                            return combined;
-                        });
-                    }
-                    setIsLoading(false);
-                });
-
-                // Fetch 24h volume for these symbols
-                const fetchVolumes = async () => {
-                    let total = 0;
-                    for (const s of symbols) {
-                        const vData = await fetchSafe(`https://api.binance.com/api/v3/ticker/24hr?symbol=${s}USDT`);
-                        if (vData && typeof vData === 'object' && !Array.isArray(vData) && vData.quoteVolume) {
-                            total += parseFloat(vData.quoteVolume);
-                        }
-                    }
-                    if (!isCancelled && total > 0) {
-                        setTotalVolume(total);
-                    }
-                };
-                fetchVolumes();
-
-            } catch (err) {
-                console.warn("Whale Tracker fetch error:", err);
-                if (!isCancelled) setIsLoading(false);
-            }
-        };
-
-        // Initial fetch if network is on
-        if (networkMode) {
-            fetchWhaleData();
-        }
-
-        // Refresh every 5 seconds tracking loop for ultra-responsiveness
-        let interval: NodeJS.Timeout;
-        if (networkMode) {
-            interval = setInterval(fetchWhaleData, 5000);
-        }
-
-        return () => {
-            isCancelled = true;
-            if (interval) clearInterval(interval);
-        };
-    }, [networkMode, tr.whale_accumulation, tr.whale_buyer, tr.whale_liquidation, tr.whale_seller]);
-
-    // AUTO-EXPIRATION logic: Purge transactions older than 45s (extended for more symbols)
-    useEffect(() => {
-        const purgeInterval = setInterval(() => {
-            const now = Date.now();
-            setTransactions(prev => prev.filter(tx => (now - tx.addedAt) < 45000));
-        }, 1000);
-        return () => clearInterval(purgeInterval);
-    }, []);
-
-
-    const formatAddress = (addr: string) => {
-        if (addr.includes(" ")) return addr; // Don't format translation labels
-        return `${addr.substring(0, 5)}...${addr.substring(addr.length - 4)}`;
-    };
+        // Module temporarily offline — awaiting real data integration
+    }, [networkMode]);
 
     return (
         <section className="px-4 md:px-16 py-8 md:py-16 relative z-10 w-full min-h-[80vh]">
@@ -209,90 +76,15 @@ export function WhaleTracker() {
                     </div>
 
                     {/* Transaction List */}
-                    <div className="flex flex-col min-h-[400px] relative z-10 font-mono">
-                        {isLoading && transactions.length === 0 && (
-                            <div className="absolute inset-0 flex flex-col items-center justify-center p-12 z-10">
-                                <div className="w-16 h-16 border-t-4 border-[#00ff41] border-solid rounded-full animate-spin mb-6"></div>
-                                <span className="text-xl font-black uppercase text-[#00ff41] animate-pulse tracking-[0.3em]">
-                                    {language === 'en' ? 'ESTABLISHING_UPLINK...' : language === 'es' ? 'ESTABLECIENDO_ENLACE...' : '正在建立上行链路...'}
-                                </span>
-                            </div>
-                        )}
-                        <AnimatePresence mode="popLayout">
-                            {transactions.map((tx) => (
-                                <motion.div
-                                    key={tx.id}
-                                    layout
-                                    initial={{ opacity: 0, scale: 0.98, x: -10 }}
-                                    animate={{
-                                        opacity: 1,
-                                        scale: 1,
-                                        x: 0,
-                                        backgroundColor: tx.isNew ? "rgba(0, 255, 65, 0.15)" : "transparent"
-                                    }}
-                                    exit={{ opacity: 0, x: 100, transition: { duration: 0.2 } }}
-                                    className={`
-                                        grid grid-cols-2 md:grid-cols-6 gap-4 p-5 border-b border-[#00ff41]/10 items-center justify-between
-                                        ${tx.isNew ? 'text-[#00ff41] shadow-[inset_4px_0_0_#00ff41]' : 'text-[#00ff41]/80'} 
-                                        hover:bg-[#00ff41]/5 transition-all group
-                                    `}
-                                >
-                                    {/* Time */}
-                                    <div className="col-span-2 md:col-span-1 flex items-center gap-2 text-[11px] font-black uppercase md:mb-0 mb-2 border-b md:border-b-0 border-[#00ff41]/10 pb-2 md:pb-0 italic">
-                                        <span className="text-[#00ff41]/40">[{new Date(tx.timestamp).toLocaleTimeString([], { hour12: false, hour: '2-digit', minute: '2-digit', second: '2-digit' })}]</span>
-                                    </div>
-
-                                    {/* Entity */}
-                                    <div className="col-span-1 flex items-center gap-2 font-black uppercase text-xs tracking-tighter">
-                                        <Anchor size={12} className="opacity-50" />
-                                        <span className="group-hover:text-white transition-colors underline decoration-dotted decoration-[#00ff41]/30">{formatAddress(tx.wallet)}</span>
-                                    </div>
-
-                                    {/* Action */}
-                                    <div className="col-span-1 flex items-center text-[10px] font-black uppercase">
-                                        {tx.action.includes("ACCUM") || tx.action === "BUY" ? (
-                                            <span className="text-black bg-[#00ff41] px-2 py-0.5 border border-black inline-flex items-center gap-1 shadow-[2px_2px_0_rgba(0,255,65,0.3)]">
-                                                <TrendingUp size={12} strokeWidth={3} /> {tx.action}
-                                            </span>
-                                        ) : tx.action.includes("LIQUID") || tx.action === "SELL" ? (
-                                            <span className="text-white bg-rose-600 px-2 py-0.5 border border-black inline-flex items-center gap-1 shadow-[2px_2px_0_rgba(225,29,72,0.3)]">
-                                                <TrendingDown size={12} strokeWidth={3} /> {tx.action}
-                                            </span>
-                                        ) : (
-                                            <span className="text-black bg-[#fffc20] px-2 py-0.5 border border-black inline-flex items-center gap-1">
-                                                {tx.action}
-                                            </span>
-                                        )}
-                                    </div>
-
-                                    {/* Asset */}
-                                    <div className="col-span-1 font-black text-xl md:text-lg italic tracking-widest text-white">
-                                        <span className="text-[#00ff41]/40">$</span>{tx.token}
-                                    </div>
-
-                                    {/* Size */}
-                                    <div className="col-span-1 md:text-right font-black text-2xl md:text-xl italic tracking-tighter text-[#00ff41]">
-                                        {formatCurrency(tx.sizeUsd)}
-                                    </div>
-
-                                    {/* Network & Inspect */}
-                                    <div className="col-span-2 md:col-span-1 flex items-center justify-between md:justify-end mt-2 md:mt-0 pt-2 md:pt-0 border-t md:border-t-0 border-[#00ff41]/10 gap-4">
-                                        <div className="flex items-center gap-2 font-black uppercase text-[9px] tracking-[0.2em] opacity-60">
-                                            <div className={`w-1.5 h-1.5 rounded-none rotate-45 ${tx.chain === 'SOL' ? 'bg-[#9945FF]' : 'bg-[#F3BA2F]'}`}></div>
-                                            {tx.chain}_NET
-                                        </div>
-                                        <a
-                                            href={tx.txUrl}
-                                            target="_blank"
-                                            rel="noopener noreferrer"
-                                            className="px-3 py-1 bg-[#00ff41] text-black text-[10px] font-black uppercase border-2 border-black hover:bg-white transition-all shadow-[3px_3px_0_rgba(255,255,255,0.1)]"
-                                        >
-                                            INSPEC
-                                        </a>
-                                    </div>
-                                </motion.div>
-                            ))}
-                        </AnimatePresence>
+                    <div className="flex flex-col items-center justify-center min-h-[400px] relative z-10 font-mono text-[#00ff41] p-10 text-center">
+                        <div className="border-2 border-[#00ff41] p-8 bg-zinc-900 shadow-[4px_4px_0_#00ff41]">
+                            <p className="text-lg font-black uppercase tracking-[0.2em] mb-2 animate-pulse">
+                                Module temporarily offline
+                            </p>
+                            <p className="text-[10px] font-bold opacity-60">
+                                awaiting real data integration
+                            </p>
+                        </div>
                     </div>
 
                     {/* Terminal Footer */}

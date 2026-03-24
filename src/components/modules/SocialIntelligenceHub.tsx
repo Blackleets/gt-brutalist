@@ -1,42 +1,25 @@
-import { KOLSignalsPanel } from "./KOLSignalsPanel";
-import { PremiumPulseChat } from "./PremiumPulseChat";
-import { motion } from "framer-motion";
-
-import { translations } from "@/lib/translations";
 import { useAppStore } from "@/lib/store";
 
 export function SocialIntelligenceHub() {
     const { language } = useAppStore();
-    const t = translations[language];
     return (
-        <div className="grid grid-cols-1 xl:grid-cols-2 gap-8 lg:gap-12 pb-20">
-            <motion.div
-                initial={{ opacity: 0, y: 20 }}
-                animate={{ opacity: 1, y: 0 }}
-                transition={{ duration: 0.5 }}
-                className="flex flex-col h-full"
-            >
-                <div className="inline-block self-start bg-white text-black border-4 border-black px-3 py-1 text-[10px] font-black uppercase tracking-widest mb-4 shadow-[4px_4px_0_#fffc20]">
-                    MODULE :: {t.social_sentiment_title}
+        <div className="flex flex-col items-center justify-center min-h-[600px] text-center p-10 bg-white border-4 border-black shadow-[12px_12px_0_black] mb-20 relative overflow-hidden">
+            {/* Grid Pattern */}
+            <div className="absolute inset-0 pointer-events-none opacity-[0.05] bg-[radial-gradient(#000_1px,transparent_1px)] [background-size:20px_20px]" />
+            
+            <div className="relative z-10">
+                <div className="bg-[#fffc20] border-4 border-black p-12 shadow-[8px_8px_0_black]">
+                    <h2 className="text-4xl font-[1000] uppercase italic tracking-tighter mb-4 italic">
+                        SOCIAL_INTEL_OFFLINE
+                    </h2>
+                    <p className="text-lg font-black uppercase tracking-widest mb-2">
+                        Module temporarily offline
+                    </p>
+                    <p className="text-xs font-bold opacity-60 uppercase">
+                        awaiting real data integration
+                    </p>
                 </div>
-                <div className="flex-1">
-                    <KOLSignalsPanel />
-                </div>
-            </motion.div>
-
-            <motion.div
-                initial={{ opacity: 0, y: 20 }}
-                animate={{ opacity: 1, y: 0 }}
-                transition={{ duration: 0.5, delay: 0.2 }}
-                className="flex flex-col h-full"
-            >
-                <div className="inline-block self-start bg-white text-black border-4 border-black px-3 py-1 text-[10px] font-black uppercase tracking-widest mb-4 shadow-[4px_4px_0_#00ff41]">
-                    MODULE :: {t.social_chat_title}
-                </div>
-                <div className="flex-1">
-                    <PremiumPulseChat />
-                </div>
-            </motion.div>
+            </div>
         </div>
     );
 }

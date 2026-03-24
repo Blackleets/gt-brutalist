@@ -1,105 +1,71 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, useMemo } from "react";
 import { motion, AnimatePresence } from "framer-motion";
-
-const SIGNALS_POSITIVE = [
-    "Volume spike",
-    "Liquidity rising",
-    "Whale accumulation",
-    "Breakout forming",
-    "Social mention surge",
-    "New pair detected"
-];
-
-const SIGNALS_NEGATIVE = [
-    "Selling pressure",
-    "Liquidity drop",
-    "Whale dumping",
-    "Bearish momentum",
-    "Social sentiment drop",
-    "High slippage"
-];
-
-const TOKENS = [
-    "BONK", "WIF", "BODEN", "TREMP", "POPCAT", "MYRO", "MUMU", "SLERF", "BOME",
-    "PEPE", "SHIB", "DOGE", "FLOKI", "TURBO", "MEME", "WEN", "DUKO", "TOSHI"
-];
-
-interface FlowItem {
-    id: number;
-    token: string;
-    change: number;
-    signal: string;
-}
-
-const generateRandomItem = (id: number): FlowItem => {
-    const isPositive = Math.random() > 0.4; // Slightly more positive
-    const token = TOKENS[Math.floor(Math.random() * TOKENS.length)];
-    const changeAmount = (Math.random() * 15).toFixed(1);
-    const change = isPositive ? parseFloat(changeAmount) : -parseFloat(changeAmount);
-    const signalList = isPositive ? SIGNALS_POSITIVE : SIGNALS_NEGATIVE;
-    const signal = signalList[Math.floor(Math.random() * signalList.length)];
-
-    return { id, token, change, signal };
-};
+import { useAppStore } from "@/lib/store";
 
 export function LiveFlow() {
-    const [items, setItems] = useState<FlowItem[]>(() => 
-        Array.from({ length: 6 }).map((_, i) => generateRandomItem(i))
-    );
-    const [counter, setCounter] = useState(6);
+    const { networkFeed } = useAppStore();
+    const [isLoading, setIsLoading] = useState(true);
 
-    // Update interval
+    // Map network feed to flow items reactively
+    const items = useMemo(() => {
+        if (!networkFeed) return [];
+        return networkFeed.map((s, index) => ({
+            id: s.id || `${s.tokenSymbol}-${index}-${s.time}`,
+            token: s.tokenSymbol,
+            change: s.metricValue,
+            signal: s.type.toLowerCase()
+        })).slice(0, 6);
+    }, [networkFeed]);
+
     useEffect(() => {
-        const interval = setInterval(() => {
-            setItems(prevItems => {
-                if (prevItems.length === 0) return prevItems;
-                
-                const newItems = [...prevItems];
-                const numToReplace = Math.random() > 0.7 ? 2 : 1;
-                
-                let nextCounter = counter;
-
-                for (let i = 0; i < numToReplace; i++) {
-                    const idxToReplace = Math.floor(Math.random() * newItems.length);
-                    newItems[idxToReplace] = generateRandomItem(nextCounter++);
-                }
-
-                setCounter(nextCounter);
-                return newItems;
-            });
-        }, Math.floor(Math.random() * 2000) + 3000); // 3-5 seconds
-
-        return () => clearInterval(interval);
-    }, [counter]);
+        if (items.length > 0 && isLoading) {
+            const timer = setTimeout(() => setIsLoading(false), 800);
+            return () => clearTimeout(timer);
+        } else if (items.length === 0 && isLoading) {
+            // Keep loading for a bit to see if data arrives
+            const timer = setTimeout(() => setIsLoading(false), 3000);
+            return () => clearTimeout(timer);
+        }
+    }, [items.length, isLoading]);
 
     return (
-        <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[80%] max-w-sm pointer-events-auto bg-black p-6 border-2 border-zinc-800 shadow-[8px_8px_0_rgba(0,0,0,1)]">
-            <div className="flex items-center gap-2 mb-6 border-b-2 border-dashed border-zinc-800 pb-4">
+        <div className="font-mono uppercase text-[10px] md:text-xs tracking-tight select-none">
+            <div className="flex items-center gap-2 mb-4 text-black font-black opacity-90">
                 <span className="text-[#00ff41] animate-pulse">⚡</span>
-                <h3 className="text-white font-black uppercase text-sm tracking-widest">Live Flow</h3>
+                <span className="tracking-widest">LIVE FLOW</span>
             </div>
             
-            <div className="flex flex-col gap-3 font-mono text-xs uppercase overflow-hidden">
-                <AnimatePresence mode="popLayout">
+            <div className="flex flex-col gap-1.5 min-h-[140px]">
+                {isLoading && (
+                    <div className="text-zinc-400 animate-pulse">SYNCING BOT UPLINK...</div>
+                )}
+
+                {!isLoading && items.length === 0 && (
+                    <div className="text-zinc-500 italic">No live signals available</div>
+                )}
+
+                <AnimatePresence mode="popLayout" initial={false}>
                     {items.map((item) => {
-                        const isPositive = item.change >= 0;
-                        const changeStr = isPositive ? `+${item.change}%` : `${item.change}%`;
-                        const colorClass = isPositive ? "text-[#00ff41]" : "text-red-500";
+                        // Extract percentage or value if present for coloring
+                        const numericMatch = item.change.match(/[+-]?\d+(\.\d+)?%/);
+                        const changeStr = numericMatch ? numericMatch[0] : item.change.split(':')[1]?.trim() || item.change;
+                        const isPositive = !changeStr.includes('-') && (changeStr.includes('+') || !changeStr.match(/\d/));
+                        const colorClass = isPositive ? "text-[#00ff41]" : "text-red-600";
 
                         return (
                             <motion.div
                                 key={item.id}
                                 layout
-                                initial={{ opacity: 0, x: 20 }}
+                                initial={{ opacity: 0, x: 10 }}
                                 animate={{ opacity: 1, x: 0 }}
-                                exit={{ opacity: 0, x: -20, transition: { duration: 0.2 } }}
-                                transition={{ type: "spring", stiffness: 400, damping: 25 }}
-                                className="flex items-center gap-2 w-full"
+                                exit={{ opacity: 0, x: -10 }}
+                                transition={{ duration: 0.25, ease: "easeOut" }}
+                                className="flex items-center gap-3 whitespace-nowrap overflow-hidden py-0.5"
                             >
-                                <span className="font-bold text-white min-w-[50px]">{item.token}</span>
-                                <span className={`font-black min-w-[60px] ${colorClass}`}>{changeStr}</span>
-                                <span className="text-zinc-600">→</span>
-                                <span className="text-zinc-400 truncate">{item.signal}</span>
+                                <span className="font-black text-black w-[55px] shrink-0">{item.token}</span>
+                                <span className={`font-black w-[80px] text-right shrink-0 ${colorClass} truncate`}>{changeStr}</span>
+                                <span className="text-zinc-300 shrink-0">→</span>
+                                <span className="text-zinc-500 truncate">{item.signal}</span>
                             </motion.div>
                         );
                     })}
@@ -108,3 +74,5 @@ export function LiveFlow() {
         </div>
     );
 }
+
+

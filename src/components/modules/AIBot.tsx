@@ -39,18 +39,24 @@ interface ChatMessage {
 }
 
 export function AIBot() {
-    const { networkMode, wallet, networkFeed, language, audioEnabled: isAudioEnabled, setAudioEnabled: setIsAudioEnabled, marketSentiment } = useAppStore();
+    const { 
+        networkMode, 
+        wallet, 
+        networkFeed, 
+        language, 
+        audioEnabled: isAudioEnabled, 
+        setAudioEnabled: setIsAudioEnabled, 
+        marketSentiment,
+        globalRankings,
+        arbitrageOpportunities
+    } = useAppStore();
     const t = translations[language];
-    // Removed unused refs for proactive alerts
-    // const lastFeedCount = useRef(networkFeed.length);
-    // const lastArbCount = useRef(arbitrageOpportunities.length);
-    // const alertedTokens = useRef<Set<string>>(new Set());
 
     const QUICK_COMMANDS = [
-        { label: t.bot_quick_audit, cmd: "audit " },
-        { label: t.bot_quick_whale, cmd: "whales" },
-        { label: t.bot_quick_heatmap, cmd: "meta" },
-        { label: t.bot_quick_arb, cmd: "arbitrage" },
+        { label: "AUDIT_CA", cmd: "audit " },
+        { label: "WHALE_SCAN", cmd: "whale_scan" },
+        { label: "HEATMAP", cmd: "heatmap" },
+        { label: "ARBITRAGE", cmd: "arbitrage" },
     ];
 
     // States
@@ -222,93 +228,125 @@ export function AIBot() {
         } catch (e) { console.warn("Audio Context Failed", e); }
     };
 
-    const handleSendMessage = (e?: React.FormEvent | React.KeyboardEvent) => {
+    const handleSendMessage = (e?: React.FormEvent | React.KeyboardEvent, forcedCommand?: string) => {
         if (e && 'preventDefault' in e) e.preventDefault();
-        if (!inputValue.trim()) return;
+        const userMsg = forcedCommand || inputValue.trim();
+        if (!userMsg) return;
 
-        const userMsg = inputValue.trim();
         setChatHistory((prev: ChatMessage[]) => [...prev, { sender: "user", text: userMsg, type: "text" as const }]);
-        setInputValue("");
+        if (!forcedCommand) setInputValue("");
         setIsThinking(true);
-        playAudio("msg");
+        if (playAudio) playAudio("msg");
 
+        // Real-time Command Processing
         setTimeout(() => {
             const lowerMsg = userMsg.toLowerCase();
             const ethRegex = /0x[a-fA-F0-9]{40}/;
             const solRegex = /[1-9A-HJ-NP-Za-km-z]{32,44}/;
-            const isAddress = ethRegex.test(userMsg) || solRegex.test(userMsg);
+            
+            let responseText = "";
 
-            if (isAddress) {
-                const addr = (userMsg.match(ethRegex)?.[0] || userMsg.match(solRegex)?.[0]) || "CA_UNKNOWN";
-                setIsThinking(false);
+            // 1. AUDIT_CA LOGIC (Real Data)
+            if (lowerMsg.startsWith("audit ") || ethRegex.test(userMsg) || solRegex.test(userMsg)) {
+                const addr = (userMsg.match(ethRegex)?.[0] || userMsg.match(solRegex)?.[0] || lowerMsg.replace("audit ", "").trim()) || "";
+                const pool = globalRankings.find(p => 
+                    p.baseToken.address.toLowerCase() === addr.toLowerCase() || 
+                    p.baseToken.symbol.toLowerCase() === addr.toLowerCase()
+                );
 
-                const t_lock = t.bot_lock_on.replace('{addr}', `${addr.substring(0, 10)}...`);
-                const t_lp = t.bot_lp_scan;
-                const t_auth = t.bot_auth_scan;
-
-                setChatHistory((p: ChatMessage[]) => [...p, { sender: "bot", text: t_lock, type: "text" as const }]);
-                setTimeout(() => setChatHistory((p: ChatMessage[]) => [...p, { sender: "bot", text: t_lp, type: "text" as const }]), 800);
-                setTimeout(() => setChatHistory((p: ChatMessage[]) => [...p, { sender: "bot", text: t_auth, type: "text" as const }]), 1600);
-                setTimeout(() => {
-                    const isRug = Math.random() > 0.8;
-                    const verdict = isRug ? t.bot_report_conclusion_rug : t.bot_report_conclusion_safe;
-                    const status = isRug ? t.bot_rug_alert : t.bot_safe_report;
-
-                    const finalReport = `${t.bot_report_final}: ${status}\n${t.bot_report_adr}: ${addr.substring(0, 10)}...\n${t.bot_report_lp}: ${isRug ? t.bot_report_unlocked : t.bot_report_locked}\n${t.bot_report_renounced}: ${isRug ? t.bot_report_no : t.bot_report_yes}\n${t.bot_report_verdict}: ${verdict}`;
-                    setChatHistory((p: ChatMessage[]) => [...p, { sender: "bot", text: finalReport, type: "text" as const }]);
-                }, 2400);
-
-                return;
-            }
-
-            let botReply = "";
-
-            // PRIORITY 1: Tactical Commands
-            if (lowerMsg.includes("precio") || lowerMsg.includes("price") || lowerMsg.includes("价格")) {
-                botReply = t.bot_price_reply;
-            } else if (lowerMsg.includes("visualize") || lowerMsg.includes("visualizar")) {
-                botReply = t.bot_visualizing;
-                setTimeout(() => {
-                    setChatHistory(p => [...p, {
-                        sender: "bot",
-                        text: "Neural Market Visualization // Live Data Fusion",
-                        type: "image",
-                        imagePath: "file:///C:/Users/Usuario/.gemini/antigravity/brain/49c0dd42-09f9-494b-a624-981b396e6445/vytronix_market_neural_visualization_1773166375846.png"
-                    }]);
-                    setIsThinking(false);
-                    playAudio("alert");
-                }, 2000);
-                return;
-            } else if (lowerMsg.includes("terminal") || lowerMsg.includes("modo_terminal")) {
-                setIsTerminalMode(!isTerminalMode);
-                botReply = !isTerminalMode ? t.bot_terminal_active : t.bot_terminal_deactive;
-            } else if (lowerMsg === "whales" || lowerMsg === "ballenas" || lowerMsg === "ballena") {
-                botReply = t.bot_whale_reply.replace('{count}', networkFeed.length.toString());
-            } else if (lowerMsg === "arbitrage" || lowerMsg === "arbitraje") {
-                botReply = t.bot_arb_alert.replace('{token}', 'SOL/USDC').replace('{spread}', '1.2').replace('{buy}', 'Jupiter').replace('{sell}', 'Orca');
-            } else if (lowerMsg === "audit" || lowerMsg === "auditar") {
-                botReply = language === 'es' ? "CA_SCAN: Ingrésa una dirección de contrato válida para auditar." : "CA_SCAN: Enter a real contract hash above to audit.";
-            } else {
-                // PRIORITY 2: Strategic Reasoning Knowledge Base
-                const knowledgeAnswer = findAnswer(userMsg, language as "en" | "es" | "zh");
-                if (knowledgeAnswer) {
-                    botReply = knowledgeAnswer;
+                if (pool) {
+                    responseText = `[AI_SYS]\n\n` +
+                                 `TOKEN: ${pool.baseToken.symbol}\n` +
+                                 `METRICS:\n` +
+                                 `• LIQUIDITY: $${pool.liquidityUsd.toLocaleString()}\n` +
+                                 `• VOLUME_24H: $${pool.volume24hUsd.toLocaleString()}\n` +
+                                 `• ALPHA_SCORE: ${pool.score}/100\n` +
+                                 `• PRICE_CHG_5M: ${pool.priceChange5m?.toFixed(2)}%\n\n` +
+                                 `INSIGHT: ${pool.score > 80 ? "HIGH_CONFIDENCE_ENTRY - BULLISH MOMENTUM" : pool.score > 50 ? "NEUTRAL_MOMENTUM - MONITORING" : "HIGH_RISK_DETECTED - PROCEED WITH CAUTION"}`;
                 } else {
-                    botReply = t.bot_command_reply;
+                    responseText = "[AI_SYS]\n\nNo real data available for this contract address. Ensure the scanner is active and the token has liquidity.";
                 }
             }
-
-            // Simulated reasoning delay based on complexity
-            const complexityBonus = userMsg.length > 30 ? 600 : 0;
-
-            setIsThinking(true);
-            setTimeout(() => {
-                setChatHistory((prev: ChatMessage[]) => [...prev, { sender: "bot", text: botReply, type: "text" as const }]);
+            // 2. WHALE_SCAN LOGIC (Real Data)
+            else if (lowerMsg === "whales" || lowerMsg === "whale_scan") {
+                // Filter real whale transactions from the network feed (threshold > $10k or has K/M in value)
+                const whaleEvents = networkFeed.filter(f => 
+                    f.type === "ORDER_EXECUTION" && 
+                    (f.metricValue.includes("K") || f.metricValue.includes("M") || parseFloat(f.metricValue.replace(/[^0-9.]/g, '')) > 10000)
+                );
+                
+                if (whaleEvents.length > 0) {
+                    responseText = `[AI_SYS]\n\n` +
+                                 `TOKEN: ${whaleEvents[0].tokenSymbol} (AND OTHERS)\n` +
+                                 `METRICS:\n` +
+                                 whaleEvents.slice(0, 3).map(f => `• ${f.tokenSymbol}: ${f.metricValue} → ${f.isPositive ? "ACCUMULATION" : "DISTRIBUTION"}`).join("\n") +
+                                 `\n\nINSIGHT: LARGE ON-CHAIN FLOW DETECTED. INSTITUTIONAL POSITIONING IN PROGRESS.`;
+                } else {
+                    responseText = "[AI_SYS]\n\nNo real data available: No whale activity detected in the current telemetry window.";
+                }
+            }
+            // 3. HEATMAP LOGIC (Real Data)
+            else if (lowerMsg === "meta" || lowerMsg === "heatmap") {
+                const topGems = [...globalRankings].sort((a, b) => (b.score || 0) - (a.score || 0)).slice(0, 5);
+                
+                if (topGems.length > 0) {
+                    responseText = `[AI_SYS]\n\n` +
+                                 `TOKEN: TOP_TRENDING_ASSETS\n` +
+                                 `METRICS:\n` +
+                                 topGems.map(g => `• ${g.baseToken.symbol}: ${g.score} PTS | ${g.priceChange24h > 0 ? '+' : ''}${g.priceChange24h?.toFixed(2)}%`).join("\n") +
+                                 `\n\nINSIGHT: MARKET MOMENTUM IS CONCENTRATING IN THE ABOVE ASSETS.`;
+                } else {
+                    responseText = "[AI_SYS]\n\nNo real data available: Global rankings are currently synchronizing.";
+                }
+            }
+            // 4. ARBITRAGE LOGIC (Real Data)
+            else if (lowerMsg === "arbitrage") {
+                const realArbs = arbitrageOpportunities;
+                
+                if (realArbs.length > 0) {
+                    responseText = `[AI_SYS]\n\n` +
+                                 `TOKEN: ${realArbs[0].token}\n` +
+                                 `METRICS:\n` +
+                                 realArbs.slice(0, 3).map(a => `• ${a.token}: ${a.profit}% SPREAD\n  ROUTE: ${a.buyExchange} → ${a.sellExchange}`).join("\n\n") +
+                                 `\n\nINSIGHT: EXECUTABLE INEFFICIENCIES DETECTED. LIQUIDITY DEPTH IS SUFFICIENT FOR CAPTURE.`;
+                } else {
+                    responseText = "[AI_SYS]\n\nNo real data available: No executable arbitrage opportunities currently bypass the safety filters.";
+                }
+            }
+            // 5. Terminal Toggle Logic
+            else if (lowerMsg === "terminal" || lowerMsg === "modo_terminal") {
+                setIsTerminalMode(prev => !prev);
+                responseText = `[SYSTEM_MODE_CHANGE] TERMINAL_VIEW: ${!isTerminalMode ? "ACTIVE" : "OFF"}`;
+            }
+            // 6. Visualization Logic
+            else if (lowerMsg.includes("visualize") || lowerMsg.includes("visualizar")) {
+                setChatHistory((prev: ChatMessage[]) => [...prev, { 
+                    sender: "bot", 
+                    text: "Neural Market Visualization // Live Data Fusion", 
+                    type: "image",
+                    imagePath: "file:///C:/Users/Usuario/GT-infra/vytronix_market_neural_visualization_1773166375846.png"
+                }]);
                 setIsThinking(false);
-            }, 800 + complexityBonus);
+                if (playAudio) playAudio("alert");
+                return;
+            }
+            // Fallback to Knowledge Base
+            else {
+                const knowledgeAnswer = findAnswer(userMsg, language as "en" | "es" | "zh");
+                responseText = knowledgeAnswer || t.bot_command_reply;
+            }
 
-        }, 1000);
+            setChatHistory((prev: ChatMessage[]) => [...prev, { 
+                sender: "bot", 
+                text: responseText, 
+                type: "text"
+            }]);
+            setIsThinking(false);
+            if (responseText.includes("[")) playAudio("alert");
+
+        }, 400); 
     };
+
 
 
 

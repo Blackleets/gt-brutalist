@@ -132,6 +132,16 @@ export function GlobalEngine() {
                                 lastArbBroadcastRef.current[arb.token] = { time: now, profit: arb.profit };
                                 lastGlobalBroadcastRef.current = now;
                                 addSystemLog(`VERIFIED_ARB: ${arb.token} (+${arb.profit}%) Dispatched to Telegram`, "success");
+                                
+                                addFeedEvent({
+                                    id: `arb-${arb.token}-${now}`,
+                                    chain: arb.buyChain.toUpperCase(),
+                                    type: "ORDER_EXECUTION",
+                                    metricValue: `ARB_DETECTED: ${arb.profit}% SPREAD`,
+                                    tokenSymbol: arb.token,
+                                    time: now,
+                                    isPositive: true
+                                });
                             }
                         }
                     });
@@ -155,7 +165,7 @@ export function GlobalEngine() {
                                     : `https://solscan.io/tx/${sig.hash}`;
 
                                 const profitMsg = 
-                                    `💰 VYTRONIX ARBITRAGE EXECUTED\n` +
+                                    `⚡ EXECUTABLE ARBITRAGE\n` +
                                     `━━━━━━━━━━━━━━━━\n\n` +
                                     `🐋 Wallet: ${partialAddr}\n\n` +
                                     `💎 Token: ${sig.token}\n\n` +
@@ -172,6 +182,16 @@ export function GlobalEngine() {
                                 lastGlobalBroadcastRef.current = now;
                                 addSystemLog(`PROFIT_DETECTED_SIGNAL: ${sig.token} capture by ${partialAddr} broadcasted`, "success");
                             }
+
+                            addFeedEvent({
+                                id: `hunter-${sig.hash}`,
+                                chain: sig.buyDex.includes('Sol') ? 'SOLANA' : 'BSC',
+                                type: "ORDER_EXECUTION",
+                                metricValue: `HUNTER_EXE: +$${sig.profitUsd.toLocaleString()}`,
+                                tokenSymbol: sig.token,
+                                time: Date.now(),
+                                isPositive: true
+                            });
 
                             // Update Hunter Reputation & Tiering
                             setHunters((prev: Hunter[]) => {
@@ -225,7 +245,7 @@ export function GlobalEngine() {
                                     : `https://solscan.io/tx/${profit.hash}`;
                                 
                                 const profitMsg = 
-                                    `💰 VYTRONIX ARBITRAGE EXECUTED\n` +
+                                    `⚡ EXECUTABLE ARBITRAGE\n` +
                                     `━━━━━━━━━━━━━━━━\n\n` +
                                     `🐋 Wallet: ${partialAddr}\n\n` +
                                     `💎 Token: ${profit.token}\n\n` +
@@ -295,17 +315,15 @@ export function GlobalEngine() {
                         followerCount: signal.followerCount || "Unknown",
                         tokenAddress: signal.tokenAddress || "0x00...fused"
                     });
-                    /*
                     addFeedEvent({
                         id: `kol-${signal.id}`,
                         chain: "GLOBAL",
                         type: "ORDER_EXECUTION",
-                        metricValue: `SOCIAL PULSE: @${signal.kols[0]}`,
+                        metricValue: `SOCIAL_PULSE: @${signal.kols[0]}`,
                         tokenSymbol: signal.tokenSymbol,
                         time: Date.now(),
                         isPositive: true
                     });
-                    */
                 });
             }
         };

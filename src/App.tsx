@@ -19,6 +19,7 @@ import { SocialIntelligenceHub } from "@/components/modules/SocialIntelligenceHu
 import { WhitepaperV3 } from "@/components/modules/WhitepaperV3";
 import { HunterTracker } from "@/components/modules/HunterTracker";
 import AlphaScanner from "@/pages/AlphaScanner";
+import { LiveFlow } from "@/components/modules/LiveFlow";
 import { SignalBridge } from "@/components/modules/SignalBridge";
 import { AegisAgent } from "@/components/modules/AegisAgent";
 
@@ -75,6 +76,7 @@ function AppContent() {
 
                 {/* Intelligence & Sidebar Tools */}
                 <div className="space-y-12">
+                  <LiveFlow />
                   <div className="bg-black text-[#00ff41] border-4 border-black p-6 shadow-[8px_8px_0_rgba(0,0,0,1)]">
                     <h3 className="text-xl font-black uppercase mb-4 italic">System Status</h3>
                     <div className="space-y-3 text-[10px] font-mono uppercase">
