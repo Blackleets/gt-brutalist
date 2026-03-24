@@ -3,6 +3,7 @@ import { motion, AnimatePresence } from "framer-motion";
 import { useAppStore } from "@/lib/store";
 import { translations } from "@/lib/translations";
 import { WalletModal } from "./WalletModal";
+import { LiveFlow } from "./LiveFlow";
 
 export function Hero() {
     const { selectedChain, activeRpcPerChain, wallet, language, setNetworkMode } = useAppStore();
@@ -57,6 +58,7 @@ export function Hero() {
             {/* AGGRESSIVE BACKGROUND ELEMENTS */}
             <div className="absolute top-0 right-0 w-1/2 h-full border-l-4 border-black/5 pointer-events-none hidden lg:block">
                 <div className="absolute inset-0 opacity-40 bg-[radial-gradient(circle_at_center,_#000_1px,_transparent_1px)] [background-size:24px_24px]"></div>
+                <LiveFlow />
             </div>
 
             <div className="relative">
